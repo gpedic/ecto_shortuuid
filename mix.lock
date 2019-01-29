@@ -1,0 +1,5 @@
+%{
+  "decimal": {:hex, :decimal, "1.6.0", "bfd84d90ff966e1f5d4370bdd3943432d8f65f07d3bab48001aebd7030590dcc", [:mix], [], "hexpm"},
+  "ecto": {:hex, :ecto, "3.0.6", "d33ab5b3f7553a41507d4b0ad5bf192d533119c4ad08f3a5d63d85aa12117dc9", [:mix], [{:decimal, "~> 1.6", [hex: :decimal, repo: "hexpm", optional: false]}, {:jason, "~> 1.0", [hex: :jason, repo: "hexpm", optional: true]}, {:poison, "~> 2.2 or ~> 3.0", [hex: :poison, repo: "hexpm", optional: true]}], "hexpm"},
+  "shortuuid": {:hex, :shortuuid, "2.0.0", "3dca1098aae6078859a9a43144ff87fc922a0e5ddfd94585d042b61ce5ba9ea4", [:mix], [], "hexpm"},
+}
