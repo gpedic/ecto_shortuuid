@@ -13,10 +13,18 @@ defmodule Ecto.ShortUUID.MixProject do
       test_coverage: [tool: ExCoveralls],
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      docs: docs()
+      docs: docs(),
+      description: description()
     ]
   end
 
+  defp description do
+    """
+    Ecto.ShortUUID is a custom Ecto type which adds support for ShortUUID in Ecto schemas
+
+    More info on ShortUUID: https://github.com/gpedic/ex_shortuuid
+    """
+  end
 
   defp docs() do
     [
