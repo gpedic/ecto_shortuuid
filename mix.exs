@@ -2,19 +2,21 @@ defmodule Ecto.ShortUUID.MixProject do
   use Mix.Project
 
   @name "Ecto.ShortUUID"
+  @app :ecto_shortuuid
   @version "0.1.0"
   @url "https://github.com/gpedic/ecto_shortuuid"
 
   def project do
     [
-      app: :ecto_shortuuid,
+      app: @app,
       version: @version,
       elixir: "~> 1.5",
       test_coverage: [tool: ExCoveralls],
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
-      description: description()
+      description: description(),
+      package: package()
     ]
   end
 
@@ -34,6 +36,17 @@ defmodule Ecto.ShortUUID.MixProject do
       extras: [
         "README.md"
       ]
+    ]
+  end
+
+  defp package do
+    # These are the default files included in the package
+    [
+      name: @app,
+      files: ["lib" , "mix.exs", "README*", "LICENSE*"],
+      maintainers: ["Goran Pedić"],
+      licenses: ["MIT"],
+      links: %{"GitHub" => @url}
     ]
   end
 
