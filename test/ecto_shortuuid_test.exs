@@ -7,20 +7,24 @@ defmodule Ecto.ShortUUIDTest do
   @test_uuid_binary <<0x2A, 0x16, 0x2E, 0xE5, 0x02, 0xF4, 0x47, 0x01, 0x9E, 0x87, 0x72, 0x76,
                       0x2C, 0xBC, 0xE5, 0xE2>>
 
-  test "cast" do
+  test "cast/1" do
     assert Ecto.ShortUUID.cast(@test_shortuuid) == {:ok, @test_shortuuid}
     assert Ecto.ShortUUID.cast(@test_uuid) == {:ok, @test_shortuuid}
     assert Ecto.ShortUUID.cast("invalid") == :error
   end
 
-  test "load" do
+  test "load/1" do
     assert Ecto.ShortUUID.load(@test_uuid_binary) == {:ok, @test_shortuuid}
     assert Ecto.UUID.load("") == :error
   end
 
-  test "dump" do
+  test "dump/1" do
     assert Ecto.ShortUUID.dump(@test_shortuuid) == {:ok, @test_uuid_binary}
     assert Ecto.ShortUUID.dump(@test_uuid) == {:ok, @test_uuid_binary}
     assert Ecto.ShortUUID.dump(@test_uuid_binary) == :error
+  end
+
+  test "autogenerate/0" do
+    assert <<_::176>> = Ecto.ShortUUID.autogenerate()
   end
 end
