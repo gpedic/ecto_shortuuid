@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.com/gpedic/ecto_shortuuid.svg?branch=master)](https://travis-ci.com/gpedic/ecto_shortuuid)
+[![Coverage Status](https://coveralls.io/repos/github/gpedic/ecto_shortuuid/badge.svg?branch=master)](https://coveralls.io/github/gpedic/ecto_shortuuid?branch=master)
+
 # Ecto.ShortUUID
 
 Ecto.ShortUUID is a custom [Ecto.Type](https://hexdocs.pm/ecto/Ecto.Type.html#content) which allows for Ecto to work with [shortened UUIDs](https://github.com/gpedic/ex_shortuuid) so instead of having a url like `/posts/2a162ee5-02f4-4701-9e87-72762cbce5e2` we can use a shortened version `/posts/keATfB8JP2ggT7U9JZrpV9`.
