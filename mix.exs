@@ -1,13 +1,31 @@
 defmodule Ecto.ShortUUID.MixProject do
   use Mix.Project
 
+  @name "Ecto.ShortUUID"
+  @version "0.1.0"
+  @url "https://github.com/gpedic/ecto_shortuuid"
+
   def project do
     [
       app: :ecto_shortuuid,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.5",
+      test_coverage: [tool: ExCoveralls],
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      docs: docs()
+    ]
+  end
+
+
+  defp docs() do
+    [
+      main: @name,
+      source_ref: "v#{@version}",
+      source_url: @url,
+      extras: [
+        "README.md"
+      ]
     ]
   end
 
@@ -21,6 +39,8 @@ defmodule Ecto.ShortUUID.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:ex_doc, ">= 0.14.0", only: :dev, runtime: false},
+      {:excoveralls, ">= 0.7.0", only: :test},
       {:shortuuid, "~> 2.0"},
       {:ecto, "~> 2.2 or ~> 3.0"}
     ]
