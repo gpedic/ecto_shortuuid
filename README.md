@@ -1,13 +1,14 @@
 [![Build Status](https://travis-ci.com/gpedic/ecto_shortuuid.svg?branch=master)](https://travis-ci.com/gpedic/ecto_shortuuid)
 [![Coverage Status](https://coveralls.io/repos/github/gpedic/ecto_shortuuid/badge.svg?branch=master)](https://coveralls.io/github/gpedic/ecto_shortuuid?branch=master)
 
+
 # Ecto.ShortUUID
 
-Ecto.ShortUUID is a custom [Ecto.Type](https://hexdocs.pm/ecto/Ecto.Type.html#content) which allows for Ecto to work with [shortened UUIDs](https://github.com/gpedic/ex_shortuuid) so instead of having a url like `/posts/2a162ee5-02f4-4701-9e87-72762cbce5e2` we can use a shortened version `/posts/keATfB8JP2ggT7U9JZrpV9`.
+Ecto.ShortUUID is a custom [Ecto.Type](https://hexdocs.pm/ecto/Ecto.Type.html#content) which allows for Ecto to automatically encode UUIDs to [ShortUUIDs](https://github.com/gpedic/ex_shortuuid) so instead of having a url like `/posts/2a162ee5-02f4-4701-9e87-72762cbce5e2` we can use a shortened version `/posts/keATfB8JP2ggT7U9JZrpV9`.
 
-The goal of this type is to be simple to use alongside or as replacement of `:binary_id` primary and foreign keys by simply overlaying `ShortUUID` over the `Ecto.UUID` and `:binary_id` type while retaining backwards compatibility.
+ShortUUIDs can be used alongside `:binary_id` or as drop-in replacement for `:binary_id` primary and foreign keys.
 
-This means that if you're already using `:binary_id`(`Ecto.UUID`) as primary key type it is possible to switch from `:binary_id` to using `Ecto.ShortUUID` and vice versa without any change of the underlying data. The ShortUUID only exists at runtime while the underlying type which is serialized is `:binary_id` (`Ecto.UUID`).
+This means that if you're already using `:binary_id`(`Ecto.UUID`) as primary key type it is possible to switch from `:binary_id` to using `Ecto.ShortUUID` and vice versa, neither the underlying data nor DB schema need to be changed.
 
 The illustrate this consider the following calls to `ShortUUID.dump/1` and `ShortUUID.load/1`
 
@@ -35,7 +36,24 @@ iex> Ecto.UUID.load(<<42, 22, 46, 229, 2, 244, 71, 1, 158, 135, 114, 118, 44, 18
 ```
 We can see that `Ecto.ShortUUID.dump/1` is backwards compatible and still accepts regular `UUIDs` and that the value stored in the DB is exactly the same as when using the regular `:binary_id` type.
 
-## Example
+## Installation
+
+If [available in Hex](https://hex.pm/docs/publish), the package can be installed
+by adding `ecto_shortuuid` to your list of dependencies in `mix.exs`:
+
+```elixir
+def deps do
+  [
+    {:ecto_shortuuid, "~> 0.1"}
+  ]
+end
+```
+
+## Example project
+
+You can check out the example project [ecto_shortuuid_example](https://github.com/gpedic/ecto_shortuuid_example) with defined config, schemas and seeds to quickly try out `ecto_shortuuid` for yourself.
+
+## Usage examples
 
 You can use the ShortUUID for a regular field
 
@@ -114,24 +132,14 @@ Alternatively if starting from scratch you can configure the default migration p
 
 ```elixir
 config :app, MyApp.Repo,
-  migration_primary_key: [name: :uuid, type: :binary_id]
+  migration_primary_key: [name: :id, type: :binary_id]
 ```
 
 Read more about config options in the [Ecto docs - Repo Configuration](https://hexdocs.pm/ecto_sql/Ecto.Migration.html#module-repo-configuration).
 
 
-## Installation
+## Documentation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `ecto_shortuuid` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:ecto_shortuuid, "~> 0.1.0"}
-  ]
-end
-```
-The docs can
+Additional documentation can
 be found at [https://hexdocs.pm/ecto_shortuuid](https://hexdocs.pm/ecto_shortuuid).
 
