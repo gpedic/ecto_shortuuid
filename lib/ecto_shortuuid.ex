@@ -46,11 +46,9 @@ defmodule Ecto.ShortUUID do
   Converts a binary UUID into a ShortUUID string.
   """
   @spec load(binary) :: {:ok, binary} | :error
-  def load(uuid) when is_binary(uuid) do
-    with {:ok, val} <- UUID.load(uuid),
-         {:ok, shortuuid} <- ShortUUID.encode(val) do
-      {:ok, shortuuid}
-    else
+  def load(<<_::128>> = uuid) do
+    case resp = ShortUUID.encode(uuid) do
+      {:ok, _} -> resp
       _ -> :error
     end
   end
