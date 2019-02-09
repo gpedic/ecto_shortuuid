@@ -34,7 +34,7 @@ defmodule Ecto.ShortUUID.MixProject do
       source_ref: "v#{@version}",
       source_url: @url,
       extras: [
-        "README.md"
+        "README.md", "CHANGELOG.md"
       ]
     ]
   end
