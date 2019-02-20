@@ -61,6 +61,7 @@ defmodule Ecto.ShortUUID.MixProject do
   defp deps do
     [
       {:ex_doc, ">= 0.14.0", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},
       {:excoveralls, ">= 0.7.0", only: :test},
       {:benchfella, "~> 0.3.5", only: [:dev, :test]},
       {:shortuuid, "~> 2.1.1"},
