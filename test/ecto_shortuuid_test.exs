@@ -8,7 +8,6 @@ defmodule Ecto.ShortUUIDTest do
                       0x2C, 0xBC, 0xE5, 0xE2>>
 
   describe "cast/1" do
-
     test "can cast shortuuids" do
       assert {:ok, @test_shortuuid} = Ecto.ShortUUID.cast(@test_shortuuid)
     end
@@ -30,7 +29,6 @@ defmodule Ecto.ShortUUIDTest do
   end
 
   describe "load/1" do
-
     test "loads binary UUID" do
       assert {:ok, @test_shortuuid} = Ecto.ShortUUID.load(@test_uuid_binary)
     end
@@ -47,11 +45,11 @@ defmodule Ecto.ShortUUIDTest do
     end
 
     test "fails if binary > 128bit" do
-      assert :error === Ecto.ShortUUID.load(<< 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>)
+      assert :error === Ecto.ShortUUID.load(<<1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>)
     end
 
     test "fails if binary < 128bit" do
-      assert :error === Ecto.ShortUUID.load(<< 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>)
+      assert :error === Ecto.ShortUUID.load(<<1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>)
     end
   end
 
@@ -78,7 +76,6 @@ defmodule Ecto.ShortUUIDTest do
       assert :error === Ecto.ShortUUID.dump(false)
       assert :error === Ecto.ShortUUID.dump(true)
     end
-
   end
 
   describe "embed_as/1" do
