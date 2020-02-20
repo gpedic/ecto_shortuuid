@@ -81,6 +81,27 @@ defmodule Ecto.ShortUUIDTest do
 
   end
 
+  describe "embed_as/1" do
+    test "returns default :self value" do
+      uuid = Ecto.ShortUUID.autogenerate()
+      assert :self === Ecto.ShortUUID.embed_as(uuid)
+    end
+  end
+
+  describe "equal?/2" do
+    test "returns true for equivalent uuids" do
+      uuid = Ecto.ShortUUID.autogenerate()
+      assert Ecto.ShortUUID.equal?(uuid, uuid)
+    end
+
+    test "returns false for different uuids" do
+      uuid1 = Ecto.ShortUUID.autogenerate()
+      uuid2 = Ecto.ShortUUID.autogenerate()
+
+      refute Ecto.ShortUUID.equal?(uuid1, uuid2)
+    end
+  end
+
   test "autogenerate/0" do
     assert <<_::176>> = Ecto.ShortUUID.autogenerate()
   end
