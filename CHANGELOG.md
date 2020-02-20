@@ -1,5 +1,13 @@
 # Changelog
 
+**0.1.3**
+
+* implement new Ecto.Type callbacks equal?/2 and embed_as/1
+
+Implement the new default callbacks to avoid compile warnings.
+Implementing them is preferable to using `use Ecto.Type` as it
+does not affect compatibility with Ecto v2
+
 **0.1.2**
 
 * update shortuuid depedency to ~> 2.1.1

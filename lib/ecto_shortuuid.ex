@@ -27,7 +27,11 @@ defmodule Ecto.ShortUUID do
   """
   def type, do: :uuid
 
-  # Provide custom casting rules.
+  @doc """
+  Casts the given input to ShortUUID
+
+  https://hexdocs.pm/ecto/Ecto.Type.html#c:cast/1
+  """
   @spec cast(shortuuid57 | uuid | any) :: {:ok, shortuuid57} | :error
   def cast(<<_::176>> = shortuuid) when is_binary(shortuuid) do
     {:ok, shortuuid}
@@ -43,7 +47,9 @@ defmodule Ecto.ShortUUID do
   def cast(_), do: :error
 
   @doc """
-  Converts a binary UUID into a ShortUUID string.
+  Loads a binary UUID into a ShortUUID string.
+
+  https://hexdocs.pm/ecto/Ecto.Type.html#c:load/1
   """
   @spec load(binary) :: {:ok, binary} | :error
   def load(<<_::128>> = uuid) do
@@ -56,7 +62,9 @@ defmodule Ecto.ShortUUID do
   def load(_), do: :error
 
   @doc """
-  Converts a string representing a ShortUUID or UUID into a binary.
+  Dumps the given string representing a ShortUUID or UUID into a binary.
+
+  https://hexdocs.pm/ecto/Ecto.Type.html#c:dump/1
   """
   @spec dump(shortuuid57 | uuid | any) :: {:ok, raw} | :error
   def dump(<<_::288>> = uuid), do: Ecto.UUID.dump(uuid)
@@ -72,8 +80,20 @@ defmodule Ecto.ShortUUID do
 
   def dump(_), do: :error
 
+  @doc """
+  Ecto v3 callback
+  Dictates how the type should be treated inside embeds.
+
+  https://hexdocs.pm/ecto/Ecto.Type.html#c:embed_as/1
+  """
   def embed_as(_), do: :self
 
+  @doc """
+  Ecto v3 callback
+  Checks if two terms are semantically equal.
+
+  https://hexdocs.pm/ecto/Ecto.Type.html#c:equal?/2
+  """
   def equal?(term1, term2), do: term1 == term2
 
   @doc """

@@ -3,7 +3,7 @@ defmodule Ecto.ShortUUID.MixProject do
 
   @name "Ecto.ShortUUID"
   @app :ecto_shortuuid
-  @version "0.1.2"
+  @version "0.1.3"
   @url "https://github.com/gpedic/ecto_shortuuid"
 
   def project do
@@ -34,7 +34,8 @@ defmodule Ecto.ShortUUID.MixProject do
       source_ref: "v#{@version}",
       source_url: @url,
       extras: [
-        "README.md", "CHANGELOG.md"
+        "README.md",
+        "CHANGELOG.md"
       ]
     ]
   end
@@ -43,7 +44,7 @@ defmodule Ecto.ShortUUID.MixProject do
     # These are the default files included in the package
     [
       name: @app,
-      files: ["lib" , "mix.exs", "README*", "LICENSE*"],
+      files: ["lib", "mix.exs", "README*", "LICENSE*"],
       maintainers: ["Goran Pedić"],
       licenses: ["MIT"],
       links: %{"GitHub" => @url}
