@@ -72,6 +72,10 @@ defmodule Ecto.ShortUUID do
 
   def dump(_), do: :error
 
+  def embed_as(_), do: :self
+
+  def equal?(term1, term2), do: term1 == term2
+
   @doc """
   Generates a ShortUUID string based on a version 4 (random) UUID.
   """
