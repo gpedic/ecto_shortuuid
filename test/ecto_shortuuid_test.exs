@@ -25,6 +25,7 @@ defmodule Ecto.ShortUUIDTest do
       assert :error === Ecto.ShortUUID.load(<<0>>)
       assert :error === Ecto.ShortUUID.cast(false)
       assert :error === Ecto.ShortUUID.cast(true)
+      assert :error === Ecto.ShortUUID.cast("fee080d9-3ea4-408b-9c2")
     end
   end
 

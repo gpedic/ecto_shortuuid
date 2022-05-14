@@ -34,7 +34,10 @@ defmodule Ecto.ShortUUID do
   """
   @spec cast(shortuuid57 | uuid | any) :: {:ok, shortuuid57} | :error
   def cast(<<_::176>> = shortuuid) when is_binary(shortuuid) do
-    {:ok, shortuuid}
+    case ShortUUID.decode(shortuuid) do
+      {:ok, _} -> {:ok, shortuuid}
+      {:error, _} -> :error
+    end
   end
 
   def cast(<<_::288>> = uuid) do
