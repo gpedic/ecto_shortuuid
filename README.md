@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/gpedic/ecto_shortuuid.svg?branch=master)](https://travis-ci.com/gpedic/ecto_shortuuid)
+[![CI Workflow](https://github.com/gpedic/ecto_shortuuid/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/gpedic/ecto_shortuuid/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/gpedic/ecto_shortuuid/badge.svg?branch=master)](https://coveralls.io/github/gpedic/ecto_shortuuid?branch=master)
 [![Hex.pm](https://img.shields.io/hexpm/v/ecto_shortuuid.svg)](https://hex.pm/packages/ecto_shortuuid)
 
