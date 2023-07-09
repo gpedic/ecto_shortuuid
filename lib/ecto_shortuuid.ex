@@ -103,7 +103,7 @@ defmodule Ecto.ShortUUID do
   Generates a ShortUUID string based on a version 4 (random) UUID.
   """
   # @spec generate() :: t
-  def generate() do
+  def generate do
     {:ok, shortuuid} =
       UUID.generate()
       |> ShortUUID.encode()
