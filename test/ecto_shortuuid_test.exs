@@ -17,21 +17,35 @@ defmodule Ecto.ShortUUIDTest do
     end
 
     test "can't cast invalid UUIDs" do
+      assert :error === Ecto.ShortUUID.cast("fee080d9-3ea4-408b-9c2")
+      assert :error === Ecto.ShortUUID.cast("not a uuid")
+    end
+
+    test "can't cast invalid formatted UUIDs of correct length" do
+      assert :error === Ecto.ShortUUID.cast("2a162ee5_02f4_4701_9e87_72762cbce5e2")
+    end
+
+    test "can't cast other types" do
       assert :error === Ecto.ShortUUID.cast("")
       assert :error === Ecto.ShortUUID.cast("invalid")
       assert :error === Ecto.ShortUUID.cast(nil)
       assert :error === Ecto.ShortUUID.cast(0)
       assert :error === Ecto.ShortUUID.cast(1)
-      assert :error === Ecto.ShortUUID.load(<<0>>)
+      assert :error === Ecto.ShortUUID.cast(<<0>>)
       assert :error === Ecto.ShortUUID.cast(false)
       assert :error === Ecto.ShortUUID.cast(true)
-      assert :error === Ecto.ShortUUID.cast("fee080d9-3ea4-408b-9c2")
     end
   end
 
   describe "load/1" do
     test "loads binary UUID" do
       assert {:ok, @test_shortuuid} = Ecto.ShortUUID.load(@test_uuid_binary)
+    end
+
+    test "loading a string uuid fails" do
+      assert_raise ArgumentError, fn ->
+        Ecto.ShortUUID.load(@test_uuid)
+      end
     end
 
     test "fails for these values" do
@@ -67,6 +81,10 @@ defmodule Ecto.ShortUUIDTest do
       assert :error === Ecto.ShortUUID.dump(@test_uuid_binary)
     end
 
+    test "fails to dump invalid formatted UUID of correct length" do
+      assert :error === Ecto.ShortUUID.dump("2a162ee5_02f4_4701_9e87_72762cbce5e2")
+    end
+
     test "fails to dump these" do
       assert :error === Ecto.ShortUUID.dump("")
       assert :error === Ecto.ShortUUID.dump("invalid")
@@ -83,6 +101,7 @@ defmodule Ecto.ShortUUIDTest do
     test "returns default :self value" do
       uuid = Ecto.ShortUUID.autogenerate()
       assert :self === Ecto.ShortUUID.embed_as(uuid)
+      assert :self === Ecto.ShortUUID.embed_as(:any_value)
     end
   end
 
@@ -98,9 +117,31 @@ defmodule Ecto.ShortUUIDTest do
 
       refute Ecto.ShortUUID.equal?(uuid1, uuid2)
     end
+
+    test "returns false for non-UUID inputs" do
+      assert false === Ecto.ShortUUID.equal?(1, "1")
+    end
   end
 
-  test "autogenerate/0" do
-    assert <<_::176>> = Ecto.ShortUUID.autogenerate()
+  describe "generate/0" do
+    test "generates valid shortuuids" do
+      for _ <- 1..10 do
+        assert {:ok, _shortuuid} = Ecto.ShortUUID.generate() |> Ecto.ShortUUID.cast()
+      end
+    end
+  end
+
+  describe "autogenerate/0" do
+    test "autogenerates valid shortuuids" do
+      for _ <- 1..10 do
+        assert <<_::176>> = Ecto.ShortUUID.autogenerate()
+      end
+    end
+  end
+
+  describe "type/0" do
+    test "returns :binary" do
+      assert :binary === Ecto.ShortUUID.type()
+    end
   end
 end
