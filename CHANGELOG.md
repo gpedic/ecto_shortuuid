@@ -1,5 +1,12 @@
 # Changelog
 
+**0.1.5**
+* Update tests and test coverage
+* Use Ecto.UUID.load/1 directly and encode the resulting UUID instead of only accepting 128 bit binaries
+
+**0.1.4**
+* Fix a bug where 22 bits strings would fail to cast
+
 **0.1.3**
 
 * implement new Ecto.Type callbacks equal?/2 and embed_as/1
