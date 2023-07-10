@@ -55,14 +55,12 @@ defmodule Ecto.ShortUUID do
   https://hexdocs.pm/ecto/Ecto.Type.html#c:load/1
   """
   @spec load(binary) :: {:ok, binary} | :error
-  def load(<<_::128>> = uuid) do
-    case resp = ShortUUID.encode(uuid) do
-      {:ok, _} -> resp
+  def load(uuid) do
+    case UUID.load(uuid) do
+      {:ok, uuid} -> ShortUUID.encode(uuid)
       _ -> :error
     end
   end
-
-  def load(_), do: :error
 
   @doc """
   Dumps the given string representing a ShortUUID or UUID into a binary.

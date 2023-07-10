@@ -3,7 +3,7 @@ defmodule Ecto.ShortUUID.MixProject do
 
   @name "Ecto.ShortUUID"
   @app :ecto_shortuuid
-  @version "0.1.3"
+  @version "0.1.5"
   @url "https://github.com/gpedic/ecto_shortuuid"
 
   def project do
