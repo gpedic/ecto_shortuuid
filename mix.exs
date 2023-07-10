@@ -34,8 +34,9 @@ defmodule Ecto.ShortUUID.MixProject do
       source_ref: "v#{@version}",
       source_url: @url,
       extras: [
-        "README.md",
-        "CHANGELOG.md"
+        "CHANGELOG.md": [title: "Changelog"],
+        LICENSE: [title: "License"],
+        "README.md": [title: "Overview"]
       ]
     ]
   end
@@ -61,7 +62,7 @@ defmodule Ecto.ShortUUID.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ex_doc, ">= 0.14.0", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.25", only: :dev, runtime: false},
       {:dialyxir, "~> 1.3", only: [:dev], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.16.1", only: :test, runtime: false},
