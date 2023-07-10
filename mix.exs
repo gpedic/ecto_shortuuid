@@ -34,8 +34,8 @@ defmodule Ecto.ShortUUID.MixProject do
       source_ref: "v#{@version}",
       source_url: @url,
       extras: [
-        "CHANGELOG.md": [],
-        "LICENSE": [title: "License"],
+        "CHANGELOG.md": [title: "Changelog"],
+        LICENSE: [title: "License"],
         "README.md": [title: "Overview"]
       ]
     ]
