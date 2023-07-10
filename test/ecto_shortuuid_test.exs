@@ -140,8 +140,8 @@ defmodule Ecto.ShortUUIDTest do
   end
 
   describe "type/0" do
-    test "returns :binary" do
-      assert :binary === Ecto.ShortUUID.type()
+    test "returns :uuid" do
+      assert :uuid === Ecto.ShortUUID.type()
     end
   end
 end
