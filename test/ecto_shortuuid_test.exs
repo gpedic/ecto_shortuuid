@@ -2,7 +2,7 @@ defmodule Ecto.ShortUUIDTest do
   use ExUnit.Case, async: true
   doctest Ecto.ShortUUID
 
-  @test_shortuuid "keATfB8JP2ggT7U9JZrpV9"
+  @test_shortuuid "9VprZJ9U7Tgg2PJ8BfTAek"
   @test_uuid "2a162ee5-02f4-4701-9e87-72762cbce5e2"
   @test_uuid_binary <<0x2A, 0x16, 0x2E, 0xE5, 0x02, 0xF4, 0x47, 0x01, 0x9E, 0x87, 0x72, 0x76,
                       0x2C, 0xBC, 0xE5, 0xE2>>
