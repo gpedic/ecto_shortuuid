@@ -12,7 +12,7 @@ ShortUUIDs can be used alongside `:binary_id` or as drop-in replacement for `:bi
 
 If you're already using `:binary_id`(`Ecto.UUID`) for primary keys it is possible to simply switch from `:binary_id` to using `Ecto.ShortUUID` and vice versa, neither the underlying data nor DB schema need to be changed.
 
-For example we can see that calls to `Ecto.ShortUUID.dump/1` and `Ecto.UUID.dump/1` will  return the same binary in the following case:
+For example, we can see that calls to `Ecto.ShortUUID.dump/1` and `Ecto.UUID.dump/1` will  return the same binary in the following case:
 
 ```elixir
 # let's get the encoded value
@@ -39,7 +39,7 @@ iex> Ecto.ShortUUID.load(<<42, 22, 46, 229, 2, 244, 71, 1, 158, 135, 114, 118, 4
 iex> Ecto.UUID.load(<<42, 22, 46, 229, 2, 244, 71, 1, 158, 135, 114, 118, 44, 188, 229, 226>>)
 {:ok, "2a162ee5-02f4-4701-9e87-72762cbce5e2"}
 ```
-We can see that `Ecto.ShortUUID.dump/1` is backwards compatible and still accepts regular `UUIDs` and that the value stored in the DB is exactly the same as when using the regular `:binary_id` type.
+We can see that `Ecto.ShortUUID.dump/1` is backwards compatible and still accepts regular `UUIDs` and the value stored in the DB is exactly the same as when using the regular `:binary_id` type.
 
 ## Installation
 
