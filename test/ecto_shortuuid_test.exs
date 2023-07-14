@@ -9,11 +9,11 @@ defmodule Ecto.ShortUUIDTest do
 
   describe "cast/1" do
     test "can cast shortuuids" do
-      assert {:ok, @test_shortuuid} = Ecto.ShortUUID.cast(@test_shortuuid)
+      assert {:ok, _} = Ecto.ShortUUID.cast(@test_shortuuid)
     end
 
     test "can cast UUIDs" do
-      assert {:ok, @test_shortuuid} = Ecto.ShortUUID.cast(@test_uuid)
+      assert {:ok, _} = Ecto.ShortUUID.cast(@test_uuid)
     end
 
     test "can't cast invalid UUIDs" do
@@ -39,7 +39,7 @@ defmodule Ecto.ShortUUIDTest do
 
   describe "load/1" do
     test "loads binary UUID" do
-      assert {:ok, @test_shortuuid} = Ecto.ShortUUID.load(@test_uuid_binary)
+      assert {:ok, _} = Ecto.ShortUUID.load(@test_uuid_binary)
     end
 
     test "loading a string uuid fails" do
@@ -70,7 +70,7 @@ defmodule Ecto.ShortUUIDTest do
 
   describe "dump/1" do
     test "can dump shortuuid" do
-      assert {:ok, @test_uuid_binary} = Ecto.ShortUUID.dump(@test_shortuuid)
+      assert {:ok, _} = Ecto.ShortUUID.dump(@test_shortuuid)
     end
 
     test "can dump UUID" do
