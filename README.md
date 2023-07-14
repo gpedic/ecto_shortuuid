@@ -1,6 +1,9 @@
-[![CI Workflow](https://github.com/gpedic/ecto_shortuuid/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/gpedic/ecto_shortuuid/actions/workflows/ci.yml)
+[![CI](https://github.com/gpedic/ecto_shortuuid/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/gpedic/ecto_shortuuid/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/gpedic/ecto_shortuuid/badge.svg?branch=master)](https://coveralls.io/github/gpedic/ecto_shortuuid?branch=master)
 [![Hex.pm](https://img.shields.io/hexpm/v/ecto_shortuuid.svg)](https://hex.pm/packages/ecto_shortuuid)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/ecto_shortuuid/)
+[![License](https://img.shields.io/hexpm/l/ecto_shortuuid.svg)](https://github.com/gpedic/ecto_shortuuid/blob/master/LICENSE.md)
+[![Last Updated](https://img.shields.io/github/last-commit/gpedic/ecto_shortuuid.svg)](https://github.com/gpedic/ecto_shortuuid/commits/master)
 
 # Ecto.ShortUUID
 
@@ -12,15 +15,15 @@ ShortUUIDs can be used alongside `:binary_id` or as drop-in replacement for `:bi
 
 If you're already using `:binary_id`(`Ecto.UUID`) for primary keys it is possible to simply switch from `:binary_id` to using `Ecto.ShortUUID` and vice versa, neither the underlying data nor DB schema need to be changed.
 
-For example we can see that calls to `Ecto.ShortUUID.dump/1` and `Ecto.UUID.dump/1` will  return the same binary in the following case:
+For example, we can see that calls to `Ecto.ShortUUID.dump/1` and `Ecto.UUID.dump/1` will  return the same binary in the following case:
 
 ```elixir
 # let's get the encoded value
 iex> Ecto.ShortUUID.cast("2a162ee5-02f4-4701-9e87-72762cbce5e2")
-{:ok, "keATfB8JP2ggT7U9JZrpV9"}
+{:ok, "9VprZJ9U7Tgg2PJ8BfTAek"}
 
 # and show off that dump/1 works with both ShortUUIDs and UUIDs
-iex> Ecto.ShortUUID.dump("keATfB8JP2ggT7U9JZrpV9")
+iex> Ecto.ShortUUID.dump("9VprZJ9U7Tgg2PJ8BfTAek")
 {:ok, <<42, 22, 46, 229, 2, 244, 71, 1, 158, 135, 114, 118, 44, 188, 229, 226>>}
 
 # dump/1 continues to work with regular UUIDs
@@ -33,13 +36,13 @@ iex> Ecto.UUID.dump("2a162ee5-02f4-4701-9e87-72762cbce5e2")
 # when a key is retrieved load/1 is called
 # with the binary representation of the UUID 2a162ee5-02f4-4701-9e87-72762cbce5e2
 iex> Ecto.ShortUUID.load(<<42, 22, 46, 229, 2, 244, 71, 1, 158, 135, 114, 118, 44, 188, 229, 226>>)
-{:ok, "keATfB8JP2ggT7U9JZrpV9"}
+{:ok, "9VprZJ9U7Tgg2PJ8BfTAek"}
 
 # the same binary key continues to work with Ecto.UUID
 iex> Ecto.UUID.load(<<42, 22, 46, 229, 2, 244, 71, 1, 158, 135, 114, 118, 44, 188, 229, 226>>)
 {:ok, "2a162ee5-02f4-4701-9e87-72762cbce5e2"}
 ```
-We can see that `Ecto.ShortUUID.dump/1` is backwards compatible and still accepts regular `UUIDs` and that the value stored in the DB is exactly the same as when using the regular `:binary_id` type.
+We can see that `Ecto.ShortUUID.dump/1` is backwards compatible and still accepts regular `UUIDs` and the value stored in the DB is exactly the same as when using the regular `:binary_id` type.
 
 ## Installation
 
@@ -49,7 +52,7 @@ by adding `ecto_shortuuid` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:ecto_shortuuid, "~> 0.1"}
+    {:ecto_shortuuid, "~> 0.2"}
   ]
 end
 ```

@@ -3,7 +3,7 @@ defmodule Ecto.ShortUUID.MixProject do
 
   @name "Ecto.ShortUUID"
   @app :ecto_shortuuid
-  @version "0.1.5"
+  @version "0.2.0"
   @url "https://github.com/gpedic/ecto_shortuuid"
 
   def project do
@@ -67,7 +67,7 @@ defmodule Ecto.ShortUUID.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.16.1", only: :test, runtime: false},
       {:benchfella, "~> 0.3.5", only: [:dev, :test]},
-      {:shortuuid, "~> 2.1.1"},
+      {:shortuuid, "~> 2.1 or ~> 3.0"},
       {:ecto, "~> 2.2 or ~> 3.0"}
     ]
   end

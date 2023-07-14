@@ -1,5 +1,8 @@
 # Changelog
 
+**0.2.0**
+* Add support for using shortuuid v3
+
 **0.1.5**
 * Update tests and test coverage
 * Use Ecto.UUID.load/1 directly and encode the resulting UUID instead of only accepting 128 bit binaries
