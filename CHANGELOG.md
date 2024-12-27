@@ -1,6 +1,6 @@
 # Changelog
 
-**0.2.1**
+**0.3.0**
 * Basic support for shortuuid v4, default alphabet only
 
 **0.2.0**
