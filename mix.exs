@@ -67,7 +67,7 @@ defmodule Ecto.ShortUUID.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.16.1", only: :test, runtime: false},
       {:benchfella, "~> 0.3.5", only: [:dev, :test]},
-      {:shortuuid, "~> 2.1 or ~> 4.0"},
+      {:shortuuid, "~> 4.0 or ~> 3.0 or ~> 2.1"},
       {:ecto, "~> 2.2 or ~> 3.0"}
     ]
   end
