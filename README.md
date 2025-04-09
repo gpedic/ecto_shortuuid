@@ -154,8 +154,7 @@ Read more about config options in the [Ecto docs - Repo Configuration](https://h
 
 ## Custom Alphabets
 
-Starting with version `v0.4.0` Ecto.ShortUUID supports custom alphabets through two approaches.
-
+Starting with version `0.4.0` Ecto.ShortUUID supports custom alphabets through two approaches.
 > Note: Custom alphabets are available in [ShortUUID](https://github.com/gpedic/ex_shortuuid) starting from version 4.0.0, and the ShortUUID.Behaviour is available since version 4.1.0.
 
 To ensure you have the right version of ShortUUID for custom alphabets, you can explicitly specify it in your dependencies:
