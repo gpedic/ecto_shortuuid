@@ -39,11 +39,30 @@ defmodule Ecto.ShortUUID.Builder do
       """
       @type raw :: <<_::128>>
 
+      @doc """
+      Returns the underlying schema type for the custom type.
+
+      For ShortUUID, this is always `:uuid` as the data is stored in UUID format
+      in the database.
+      """
       @impl true
+      @spec type() :: :uuid
       def type, do: :uuid
 
+      @doc """
+      Casts a value to a ShortUUID.
+
+      Accepts:
+      - Standard UUID strings (converts them to ShortUUID format)
+      - ShortUUID strings (validates them)
+
+      Returns:
+      - `{:ok, shortuuid}` on success
+      - `:error` on failure
+      """
       @impl true
-      def cast(<<_::288>> = uuid) do
+      @spec cast(uuid() | shortuuid() | any()) :: {:ok, shortuuid()} | :error
+      def cast(<<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = uuid) do
         case UUID.cast(uuid) do
           :error -> :error
           {:ok, casted} -> @shortuuid_module.encode(casted)
@@ -59,7 +78,17 @@ defmodule Ecto.ShortUUID.Builder do
 
       def cast(_), do: :error
 
+      @doc """
+      Loads a binary UUID from the database and converts it to ShortUUID format.
+
+      Returns:
+      - `{:ok, shortuuid}` on success
+      - `:error` on failure
+
+      Raises an `ArgumentError` if given a string UUID instead of binary.
+      """
       @impl true
+      @spec load(raw() | any()) :: {:ok, shortuuid()} | :error
       def load(uuid) do
         case UUID.load(uuid) do
           {:ok, uuid} -> @shortuuid_module.encode(uuid)
@@ -67,8 +96,20 @@ defmodule Ecto.ShortUUID.Builder do
         end
       end
 
+      @doc """
+      Dumps a ShortUUID or standard UUID to binary format for database storage.
+
+      Accepts:
+      - ShortUUID strings
+      - Standard UUID strings
+
+      Returns:
+      - `{:ok, binary_uuid}` on success
+      - `:error` on failure
+      """
       @impl true
-      def dump(<<_::288>> = uuid), do: UUID.dump(uuid)
+      @spec dump(shortuuid() | uuid() | any()) :: {:ok, raw()} | :error
+      def dump(<<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = uuid), do: UUID.dump(uuid)
 
       def dump(shortuuid) when is_binary(shortuuid) do
         with {:ok, uuid} <- @shortuuid_module.decode(shortuuid),
@@ -81,19 +122,38 @@ defmodule Ecto.ShortUUID.Builder do
 
       def dump(_), do: :error
 
+      @doc """
+      Determines how the type is embedded in a changeset.
+      """
       @impl true
+      @spec embed_as(term()) :: :self
       def embed_as(_), do: :self
 
+      @doc """
+      Checks if two terms are equal.
+      """
       @impl true
+      @spec equal?(term(), term()) :: boolean()
       def equal?(term1, term2), do: term1 == term2
 
+      @doc """
+      Generates a random ShortUUID string.
+      """
+      @spec generate() :: shortuuid()
       def generate do
         UUID.generate()
         |> @shortuuid_module.encode()
         |> elem(1)
       end
 
+      @doc """
+      Generates a random ShortUUID string for use in primary keys.
+
+      This is called by Ecto when a record is inserted if the schema has
+      `@primary_key {:id, CustomShortUUIDType, autogenerate: true}`.
+      """
       @impl true
+      @spec autogenerate() :: shortuuid()
       def autogenerate do
         generate()
       end
