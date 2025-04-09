@@ -123,21 +123,25 @@ defmodule Ecto.ShortUUID.Builder do
       def dump(_), do: :error
 
       @doc """
-      Determines how the type is embedded in a changeset.
+      Ecto v3 callback
+      Dictates how the type should be treated inside embeds.
+      https://hexdocs.pm/ecto/Ecto.Type.html#c:embed_as/1
       """
       @impl true
       @spec embed_as(term()) :: :self
       def embed_as(_), do: :self
 
       @doc """
-      Checks if two terms are equal.
+      Ecto v3 callback
+      Checks if two terms are semantically equal.
+      https://hexdocs.pm/ecto/Ecto.Type.html#c:equal?/2
       """
       @impl true
       @spec equal?(term(), term()) :: boolean()
       def equal?(term1, term2), do: term1 == term2
 
       @doc """
-      Generates a random ShortUUID string.
+      Generates a ShortUUID string based on a version 4 (random) UUID.
       """
       @spec generate() :: shortuuid()
       def generate do

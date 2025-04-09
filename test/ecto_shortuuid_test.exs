@@ -237,7 +237,9 @@ defmodule Ecto.ShortUUIDTest do
 
       # Should be able to dump and decode correctly
       {:ok, binary} = Ecto.ShortUUID.dump(short_uuid)
-      assert <<255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255>> == binary
+
+      assert <<255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255>> ==
+               binary
     end
   end
 
