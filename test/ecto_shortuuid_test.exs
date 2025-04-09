@@ -144,4 +144,51 @@ defmodule Ecto.ShortUUIDTest do
       assert :uuid === Ecto.ShortUUID.type()
     end
   end
+
+  describe "edge cases" do
+    test "handles malformed shortuuids correctly" do
+      # Too short shortuuid
+      assert :error == Ecto.ShortUUID.cast("9VprZJ")
+
+      # Shortuuid with invalid characters
+      assert :error == Ecto.ShortUUID.cast("9VprZJ9U7T/g2PJ8BfTAek")
+
+      # Empty string
+      assert :error == Ecto.ShortUUID.cast("")
+    end
+
+    test "handles specific nil values" do
+      assert :error == Ecto.ShortUUID.cast(nil)
+      assert :error == Ecto.ShortUUID.load(nil)
+      assert :error == Ecto.ShortUUID.dump(nil)
+    end
+
+    test "supports different UUID versions" do
+      # UUID v1 (time-based)
+      uuid_v1 = "c9aec822-6d99-11ee-b962-0242ac120002"
+      assert {:ok, _} = Ecto.ShortUUID.cast(uuid_v1)
+
+      # UUID v4 (random)
+      uuid_v4 = "b44f3c49-0403-4dcd-bd5f-e22ea6d48a4f"
+      assert {:ok, _} = Ecto.ShortUUID.cast(uuid_v4)
+
+      # Both should result in valid shortuuids
+      {:ok, shortuuid_v1} = Ecto.ShortUUID.cast(uuid_v1)
+      {:ok, shortuuid_v4} = Ecto.ShortUUID.cast(uuid_v4)
+
+      assert {:ok, _} = Ecto.ShortUUID.dump(shortuuid_v1)
+      assert {:ok, _} = Ecto.ShortUUID.dump(shortuuid_v4)
+    end
+
+    test "handles incomplete UUID formats" do
+      # Missing sections
+      assert :error == Ecto.ShortUUID.cast("c9aec822-6d99-11ee-b962")
+
+      # Too many sections
+      assert :error == Ecto.ShortUUID.cast("c9aec822-6d99-11ee-b962-0242ac120002-extra")
+
+      # Wrong delimiters
+      assert :error == Ecto.ShortUUID.cast("c9aec822_6d99_11ee_b962_0242ac120002")
+    end
+  end
 end

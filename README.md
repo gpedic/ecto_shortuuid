@@ -152,6 +152,97 @@ config :app, MyApp.Repo,
 
 Read more about config options in the [Ecto docs - Repo Configuration](https://hexdocs.pm/ecto_sql/Ecto.Migration.html#module-repo-configuration).
 
+## Custom Alphabets
+
+Starting with version `v0.4.0` Ecto.ShortUUID supports custom alphabets through two approaches:
+
+### Approach 1: Using ShortUUID.Builder
+
+You can define a custom ShortUUID module with a specific alphabet using `ShortUUID.Builder`, then create a custom Ecto type with `Ecto.ShortUUID.Builder`:
+
+```elixir
+# Define a custom ShortUUID implementation with a specific alphabet
+defmodule MyApp.Base58UUID do
+  use ShortUUID.Builder, alphabet: :base58
+end
+
+# Create a custom Ecto type that uses your ShortUUID implementation
+defmodule MyApp.Base58EctoUUID do
+  use Ecto.ShortUUID.Builder, module: MyApp.Base58UUID
+end
+
+# Use in your schema
+defmodule MyApp.User do
+  use Ecto.Schema
+  
+  @primary_key {:id, MyApp.Base58EctoUUID, autogenerate: true}
+  @foreign_key_type MyApp.Base58EctoUUID
+  
+  schema "users" do
+    # ...
+  end
+end
+```
+
+ShortUUID supports these predefined alphabets:
+- `:base57_shortuuid` - Default alphabet, omits ambiguous characters like "l", "1", "I", "O", "0"
+- `:base58` - Bitcoin alphabet
+- `:base62` - Alphanumeric alphabet
+- `:base32`, `:base32_hex`, `:base32_crockford`, `:base32_z` - Various base32 encodings
+- `:base64`, `:base64_url` - Base64 encodings
+
+You can also define a custom alphabet string with at least 16 unique characters:
+
+```elixir
+defmodule MyApp.CustomAlphabetUUID do
+  use ShortUUID.Builder, alphabet: "0123456789ABCDEF-_+"
+end
+```
+
+### Approach 2: Implementing ShortUUID.Behaviour
+
+For more control, you can implement the `ShortUUID.Behaviour` directly:
+
+```elixir
+defmodule MyApp.CustomShortUUID do
+  @behaviour ShortUUID.Behaviour
+  
+  @impl true
+  def encode(uuid) do
+    # Your custom implementation
+    {:ok, "custom-" <> uuid}
+  end
+  
+  @impl true
+  def encode!(uuid) do
+    case encode(uuid) do
+      {:ok, encoded} -> encoded
+      {:error, reason} -> raise ArgumentError, message: reason
+    end
+  end
+  
+  @impl true
+  def decode("custom-" <> uuid) do
+    # Your custom implementation
+    {:ok, uuid}
+  end
+  
+  @impl true
+  def decode!(encoded) do
+    case decode(encoded) do
+      {:ok, decoded} -> decoded
+      {:error, reason} -> raise ArgumentError, message: reason
+    end
+  end
+end
+
+# Create an Ecto type with your custom implementation
+defmodule MyApp.CustomEctoUUID do
+  use Ecto.ShortUUID.Builder, module: MyApp.CustomShortUUID
+end
+```
+
+This gives you complete control over encoding and decoding while maintaining compatibility with Ecto.
 
 ## Documentation
 
