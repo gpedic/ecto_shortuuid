@@ -40,6 +40,7 @@ defmodule Ecto.ShortUUID.BuilderTest do
         {:ok, binary} when byte_size(binary) == 16 ->
           # Convert binary UUID to string format
           Ecto.UUID.load(binary)
+
         _ ->
           {:error, "Invalid mock uuid format"}
       end

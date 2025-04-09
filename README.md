@@ -52,7 +52,7 @@ by adding `ecto_shortuuid` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:ecto_shortuuid, "~> 0.3.0"}
+    {:ecto_shortuuid, "~> 0.4.0"}
   ]
 end
 ```
@@ -154,7 +154,20 @@ Read more about config options in the [Ecto docs - Repo Configuration](https://h
 
 ## Custom Alphabets
 
-Starting with version `v0.4.0` Ecto.ShortUUID supports custom alphabets through two approaches:
+Starting with version `v0.4.0` Ecto.ShortUUID supports custom alphabets through two approaches.
+
+> Note: Custom alphabets are available in [ShortUUID](https://github.com/gpedic/ex_shortuuid) starting from version 4.0.0, and the ShortUUID.Behaviour is available since version 4.1.0.
+
+To ensure you have the right version of ShortUUID for custom alphabets, you can explicitly specify it in your dependencies:
+
+```elixir
+def deps do
+  [
+    {:ecto_shortuuid, "~> 0.4.0"},
+    {:shortuuid, "~> 4.1"}  # Explicitly specify for custom alphabets/behaviors
+  ]
+end
+```
 
 ### Approach 1: Using ShortUUID.Builder
 
@@ -184,7 +197,7 @@ defmodule MyApp.User do
 end
 ```
 
-ShortUUID supports these predefined alphabets:
+[ShortUUID](https://github.com/gpedic/ex_shortuuid) supports these predefined alphabets:
 - `:base57_shortuuid` - Default alphabet, omits ambiguous characters like "l", "1", "I", "O", "0"
 - `:base58` - Bitcoin alphabet
 - `:base62` - Alphanumeric alphabet
@@ -201,7 +214,7 @@ end
 
 ### Approach 2: Implementing ShortUUID.Behaviour
 
-For more control, you can implement the `ShortUUID.Behaviour` directly:
+For more control, you can implement the `ShortUUID.Behaviour` (available since [ShortUUID](https://github.com/gpedic/ex_shortuuid) v4.1.0) directly:
 
 ```elixir
 defmodule MyApp.CustomShortUUID do
