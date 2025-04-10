@@ -180,7 +180,7 @@ end
 
 # Create a custom Ecto type that uses your ShortUUID implementation
 defmodule MyApp.Base58EctoUUID do
-  use Ecto.ShortUUID.Builder, module: MyApp.Base58UUID
+  use Ecto.ShortUUID.Builder, encoder: MyApp.Base58UUID
 end
 
 # Use in your schema
@@ -250,7 +250,7 @@ end
 
 # Create an Ecto type with your custom implementation
 defmodule MyApp.CustomEctoUUID do
-  use Ecto.ShortUUID.Builder, module: MyApp.CustomShortUUID
+  use Ecto.ShortUUID.Builder, encoder: MyApp.CustomShortUUID
 end
 ```
 

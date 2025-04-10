@@ -65,7 +65,7 @@ defmodule Ecto.ShortUUID.BuilderTest do
 
   # Custom ShortUUID type using builder
   defmodule CustomShortUUID do
-    use Ecto.ShortUUID.Builder, module: MockShortUUID
+    use Ecto.ShortUUID.Builder, encoder: MockShortUUID
   end
 
   @test_uuid "2a162ee5-02f4-4701-9e87-72762cbce5e2"

@@ -9,20 +9,20 @@ defmodule Ecto.ShortUUID.Builder do
       end
 
       defmodule MyShortUUID do
-        use Ecto.ShortUUID.Builder, module: MyBase58UUID
+        use Ecto.ShortUUID.Builder, encoder: MyBase58UUID
       end
 
-  The specified module must implement the ShortUUID interface with `encode/1`, `encode!/1`, and `decode/1`.
+  The specified encoder must be a [ShortUUID](https://github.com/gpedic/ex_shortuuid) compatible module.
   """
 
   defmacro __using__(opts) do
-    shortuuid_module = Keyword.fetch!(opts, :module)
+    encoder = Keyword.fetch!(opts, :encoder)
 
     quote do
       @behaviour Ecto.Type
       alias Ecto.UUID
 
-      @shortuuid_module unquote(shortuuid_module)
+      @encoder unquote(encoder)
 
       @typedoc """
       A hex-encoded UUID string.
@@ -65,12 +65,12 @@ defmodule Ecto.ShortUUID.Builder do
       def cast(<<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = uuid) do
         case UUID.cast(uuid) do
           :error -> :error
-          {:ok, casted} -> @shortuuid_module.encode(casted)
+          {:ok, casted} -> @encoder.encode(casted)
         end
       end
 
       def cast(shortuuid) when is_binary(shortuuid) do
-        case @shortuuid_module.decode(shortuuid) do
+        case @encoder.decode(shortuuid) do
           {:ok, _} -> {:ok, shortuuid}
           {:error, _} -> :error
         end
@@ -91,7 +91,7 @@ defmodule Ecto.ShortUUID.Builder do
       @spec load(raw() | any()) :: {:ok, shortuuid()} | :error
       def load(uuid) do
         case UUID.load(uuid) do
-          {:ok, uuid} -> @shortuuid_module.encode(uuid)
+          {:ok, uuid} -> @encoder.encode(uuid)
           _ -> :error
         end
       end
@@ -112,7 +112,7 @@ defmodule Ecto.ShortUUID.Builder do
       def dump(<<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = uuid), do: UUID.dump(uuid)
 
       def dump(shortuuid) when is_binary(shortuuid) do
-        with {:ok, uuid} <- @shortuuid_module.decode(shortuuid),
+        with {:ok, uuid} <- @encoder.decode(shortuuid),
              {:ok, binary_uuid} <- UUID.dump(uuid) do
           {:ok, binary_uuid}
         else
@@ -146,7 +146,7 @@ defmodule Ecto.ShortUUID.Builder do
       @spec generate() :: shortuuid()
       def generate do
         UUID.generate()
-        |> @shortuuid_module.encode()
+        |> @encoder.encode()
         |> elem(1)
       end
 
