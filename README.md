@@ -71,7 +71,7 @@ dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:ecto_shortuuid, "~> 0.4.1"}
+    {:ecto_shortuuid, "~> 1.0"}
   ]
 end
 ```
@@ -339,7 +339,7 @@ end
 ```
 
 If `encode/1` doesn't return `{:ok, string}`, `cast/1` and `load/1` return
-`:error` and `generate/0` raises.
+`:error` and `generate/0` and `generate/1` raise.
 
 The encoder is checked when the Ecto type is compiled, whether it's given as a
 module name, a variable or a module attribute: compilation fails with an
