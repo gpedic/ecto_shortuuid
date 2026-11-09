@@ -1,0 +1,24 @@
+version = 1
+
+[project]
+name = "ecto_shortuuid"
+base_branch = "master"
+github = "gpedic/ecto_shortuuid"
+
+[tools]
+erlang = "29.1.2"
+elixir = "1.20.5-otp-29"
+
+[[cache]]
+path = "deps"
+manifests = ["mix.exs", "mix.lock"]
+
+[[cache]]
+path = "_build"
+optional = true
+manifests = ["mix.exs", "mix.lock", ".tool-versions"]
+invalidate = ["*/lib/ecto_shortuuid"]
+
+[[setup]]
+name = "Elixir deps"
+run = "mix local.hex --force && mix local.rebar --force && mix deps.get && MIX_ENV=test mix deps.compile"
