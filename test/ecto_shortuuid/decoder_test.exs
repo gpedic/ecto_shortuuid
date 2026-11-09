@@ -56,6 +56,16 @@ defmodule Ecto.ShortUUID.DecoderTest do
     end
   end
 
+  describe "round trip" do
+    test "rejects strings that don't encode back to themselves" do
+      # LaxEncoder decodes "x" <> uppercase UUID, but encodes to lowercase.
+      upper = "x" <> String.upcase(@test_uuid)
+      assert :error == LaxType.cast(upper)
+      assert :error == LaxType.dump(upper)
+      assert {:ok, "x" <> @test_uuid} == LaxType.cast(@test_uuid)
+    end
+  end
+
   describe "default ShortUUID encoder" do
     test "rejects strings that aren't 22 characters long" do
       # shortuuid 2.x decodes these by padding them; 3.x and 4.x reject them.

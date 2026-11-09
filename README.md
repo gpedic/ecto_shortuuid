@@ -273,10 +273,12 @@ end
 ```
 
 `cast/1` and `dump/1` only accept a string if `decode/1` returns `{:ok, uuid}`
-with a valid UUID, so `"custom-garbage"` above is rejected even though
-`decode/1` returns `{:ok, "garbage"}` for it. If `encode/1` doesn't return
-`{:ok, string}`, `cast/1` and `load/1` return `:error` and `generate/0`
-raises.
+with a valid UUID and `encode/1` turns that UUID back into the same string. So
+`"custom-garbage"` above is rejected even though `decode/1` returns
+`{:ok, "garbage"}` for it, and so is `"custom-2A162EE5-..."` (an uppercase
+UUID), because `encode/1` would produce the lowercase form. If `encode/1`
+doesn't return `{:ok, string}`, `cast/1` and `load/1` return `:error` and
+`generate/0` raises.
 
 This gives you complete control over encoding and decoding while maintaining compatibility with Ecto.
 
