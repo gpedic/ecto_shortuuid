@@ -63,11 +63,13 @@ end
 | ---------- | ------------------ |
 | Elixir     | `~> 1.15`          |
 | Ecto       | `~> 3.10`          |
-| shortuuid  | `~> 4.1`           |
+| shortuuid  | `~> 4.2`           |
 
-Ecto 2.x and shortuuid 2.x/3.x are no longer supported. shortuuid 4.1 is
-required so that `ShortUUID.Builder` (custom alphabets) and
-`ShortUUID.Behaviour` are always available. shortuuid 3.x and 4.x produce
+Ecto 2.x and shortuuid 2.x/3.x are no longer supported. shortuuid 4.2 is
+required: `ShortUUID.Builder` (custom alphabets) and `ShortUUID.Behaviour` are
+always available, and decoding never raises on malformed input (such as
+invalid UTF-8), so `cast/1` and `dump/1` return `:error` for it instead of
+crashing. shortuuid 3.x and 4.x produce
 identical encodings for the default alphabet, so upgrading from 3.x does not
 change any stored or exposed IDs.
 

@@ -113,7 +113,7 @@ defmodule Ecto.ShortUUID.MixProject do
       {:stream_data, "~> 1.1", only: [:dev, :test]},
       {:sobelow, "~> 0.18", only: :dev, runtime: false},
       {:mix_audit, "~> 2.1", only: :dev, runtime: false},
-      {:shortuuid, "~> 4.1"},
+      {:shortuuid, "~> 4.2"},
       {:ecto, ecto_requirement()}
     ]
   end
