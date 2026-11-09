@@ -217,68 +217,93 @@ end
 
 ### Approach 2: Implementing ShortUUID.Behaviour
 
-For more control, you can implement the [`ShortUUID.Behaviour`](https://hexdocs.pm/shortuuid/ShortUUID.Behaviour.html) directly:
+For more control, you can implement the [`ShortUUID.Behaviour`](https://hexdocs.pm/shortuuid/ShortUUID.Behaviour.html)
+yourself. A common reason is a prefixed ID that shows what kind of record it
+belongs to, as in `usr_9VprZJ9U7Tgg2PJ8BfTAek`. This encoder wraps the default
+`ShortUUID`:
 
 ```elixir
-defmodule MyApp.CustomShortUUID do
+defmodule MyApp.UserID do
   @behaviour ShortUUID.Behaviour
+
+  @prefix "usr_"
 
   @impl true
   def encode(uuid) do
-    # Your custom implementation
-    case Ecto.UUID.cast(uuid) do
-      {:ok, uuid} -> {:ok, "custom-" <> uuid}
-      :error -> {:error, "Invalid UUID"}
-    end
+    with {:ok, short} <- ShortUUID.encode(uuid), do: {:ok, @prefix <> short}
   end
 
   @impl true
   def encode!(uuid) do
     case encode(uuid) do
       {:ok, encoded} -> encoded
-      {:error, reason} -> raise ArgumentError, message: reason
+      {:error, message} -> raise ArgumentError, message: message
     end
   end
 
   @impl true
-  def decode("custom-" <> uuid) do
-    # Your custom implementation
-    {:ok, uuid}
-  end
-
-  # Always reject anything you can't decode
-  def decode(_), do: {:error, "Invalid ShortUUID"}
+  def decode(@prefix <> short), do: ShortUUID.decode(short)
+  # Reject anything else instead of raising
+  def decode(_), do: {:error, "Invalid user ID"}
 
   @impl true
   def decode!(encoded) do
     case decode(encoded) do
       {:ok, decoded} -> decoded
-      {:error, reason} -> raise ArgumentError, message: reason
+      {:error, message} -> raise ArgumentError, message: message
     end
   end
 end
 
-# Create an Ecto type with your custom implementation
-defmodule MyApp.CustomEctoUUID do
-  use Ecto.ShortUUID.Builder, encoder: MyApp.CustomShortUUID
+# The Ecto type using it
+defmodule MyApp.Types.UserID do
+  use Ecto.ShortUUID.Builder, encoder: MyApp.UserID
 end
 ```
 
-`cast/1` and `dump/1` only accept a string if `decode/1` returns `{:ok, uuid}`
-with a valid UUID and `encode/1` turns that UUID back into the same string. So
-`"custom-garbage"` above is rejected even though `decode/1` returns
-`{:ok, "garbage"}` for it, and so is `"custom-2A162EE5-..."` (an uppercase
-UUID), because `encode/1` would produce the lowercase form. If `encode/1`
-doesn't return `{:ok, string}`, `cast/1` and `load/1` return `:error` and
-`generate/0` raises.
+```elixir
+iex> MyApp.Types.UserID.cast("2a162ee5-02f4-4701-9e87-72762cbce5e2")
+{:ok, "usr_9VprZJ9U7Tgg2PJ8BfTAek"}
+iex> MyApp.Types.UserID.cast("usr_9VprZJ9U7Tgg2PJ8BfTAek")
+{:ok, "usr_9VprZJ9U7Tgg2PJ8BfTAek"}
+iex> MyApp.Types.UserID.cast("org_9VprZJ9U7Tgg2PJ8BfTAek")
+:error
+iex> MyApp.Types.UserID.cast("9VprZJ9U7Tgg2PJ8BfTAek")
+:error
+```
+
+The decoder only accepts the prefix followed by a valid ShortUUID, which
+`ShortUUID.decode/1` only accepts in its canonical form, so every ID has
+exactly one spelling. Keep custom decoders that strict.
+
+`cast/1` only accepts the string `encode/1` produces for a UUID. For an
+encoder like this one it checks that by encoding the decoded UUID again and
+comparing the result, which rejects input a lax decoder would let through
+(say, a different letter case). `dump/1` only decodes. With shortuuid 4.3 or
+later, an encoder whose `decode/1` is strict can skip that extra `encode/1`
+call by declaring itself canonical (only the `:canonical` key is read):
+
+```elixir
+@impl true
+def __shortuuid__ do
+  # alphabet, base and encoded_length describe the part after the prefix
+  %{
+    alphabet: "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
+    base: 57,
+    encoded_length: 22,
+    canonical: true
+  }
+end
+```
+
+If `encode/1` doesn't return `{:ok, string}`, `cast/1` and `load/1` return
+`:error` and `generate/0` raises.
 
 The encoder is checked when the Ecto type is compiled: compilation fails with
 an `ArgumentError` if the `:encoder` option is missing, the module can't be
 compiled or loaded, or it doesn't export `encode/1` and `decode/1`. Define the
 encoder in its own file, above the Ecto type in the same file, or nested inside
 the Ecto type module.
-
-This gives you complete control over encoding and decoding while maintaining compatibility with Ecto.
 
 ## Development
 
