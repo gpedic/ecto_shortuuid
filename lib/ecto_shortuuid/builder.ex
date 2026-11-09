@@ -13,6 +13,12 @@ defmodule Ecto.ShortUUID.Builder do
       end
 
   The specified encoder must be a [ShortUUID](https://github.com/gpedic/ex_shortuuid) compatible module.
+
+  `cast/1` and `dump/1` only accept a ShortUUID string if `encoder.decode/1`
+  returns `{:ok, uuid}` with a valid UUID. With the default `ShortUUID`
+  encoder the string must also be 22 characters long, the length of every
+  ShortUUID it produces (shortuuid 2.x would otherwise decode shorter
+  strings by padding them).
   """
 
   defmacro __using__(opts) do
@@ -54,7 +60,7 @@ defmodule Ecto.ShortUUID.Builder do
 
       Accepts:
       - Standard UUID strings (converts them to ShortUUID format)
-      - ShortUUID strings (validates them)
+      - ShortUUID strings, if the encoder decodes them to a valid UUID
 
       Returns:
       - `{:ok, shortuuid}` on success
@@ -80,7 +86,7 @@ defmodule Ecto.ShortUUID.Builder do
       @doc """
       Dumps a ShortUUID or standard UUID to binary format for database storage.
 
-      Accepts:
+      Accepts the same values as `cast/1`:
       - ShortUUID strings
       - Standard UUID strings
 
@@ -90,18 +96,7 @@ defmodule Ecto.ShortUUID.Builder do
       """
       @impl true
       @spec dump(shortuuid() | uuid() | any()) :: {:ok, raw()} | :error
-      def dump(<<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = uuid), do: UUID.dump(uuid)
-
-      def dump(shortuuid) when is_binary(shortuuid) do
-        with {:ok, uuid} <- @encoder.decode(shortuuid),
-             {:ok, binary_uuid} <- UUID.dump(uuid) do
-          {:ok, binary_uuid}
-        else
-          _ -> :error
-        end
-      end
-
-      def dump(_), do: :error
+      def dump(value), do: unquote(__MODULE__).dump(@encoder, value)
 
       @doc """
       Ecto v3 callback
@@ -150,6 +145,16 @@ defmodule Ecto.ShortUUID.Builder do
   # every type module, and so the compiler does not type-check them against one
   # specific encoder.
 
+  # `__STACKTRACE__` only exists since Elixir 1.7 and `System.stacktrace/0` is
+  # deprecated since then.
+  defmacrop current_stacktrace do
+    if Version.match?(System.version(), ">= 1.7.0") do
+      quote do: __STACKTRACE__
+    else
+      quote do: System.stacktrace()
+    end
+  end
+
   @doc false
   def cast(encoder, <<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = uuid) do
     with {:ok, casted} <- Ecto.UUID.cast(uuid) do
@@ -158,9 +163,8 @@ defmodule Ecto.ShortUUID.Builder do
   end
 
   def cast(encoder, shortuuid) when is_binary(shortuuid) do
-    case encoder.decode(shortuuid) do
-      {:ok, _} -> {:ok, shortuuid}
-      {:error, _} -> :error
+    with {:ok, _uuid} <- decode(encoder, shortuuid) do
+      {:ok, shortuuid}
     end
   end
 
@@ -174,6 +178,19 @@ defmodule Ecto.ShortUUID.Builder do
   end
 
   @doc false
+  def dump(_encoder, <<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = uuid) do
+    Ecto.UUID.dump(uuid)
+  end
+
+  def dump(encoder, shortuuid) when is_binary(shortuuid) do
+    with {:ok, uuid} <- decode(encoder, shortuuid) do
+      Ecto.UUID.dump(uuid)
+    end
+  end
+
+  def dump(_encoder, _value), do: :error
+
+  @doc false
   def generate(encoder) do
     uuid = Ecto.UUID.generate()
 
@@ -185,6 +202,34 @@ defmodule Ecto.ShortUUID.Builder do
         raise "#{inspect(encoder)}.encode/1 failed to encode generated UUID " <>
                 "#{inspect(uuid)}, got: #{inspect(other)}"
     end
+  end
+
+  # The default ShortUUID encoder only ever produces 22-character strings.
+  # shortuuid 2.x decodes shorter input (e.g. "9VprZJ" or "") by padding it,
+  # so anything of another length is rejected before decoding.
+  defp decode(ShortUUID, shortuuid) when byte_size(shortuuid) != 22, do: :error
+
+  # Decodes a ShortUUID and checks that the result is a valid UUID, returning
+  # it as a hex-encoded string.
+  defp decode(encoder, shortuuid) do
+    case call_decode(encoder, shortuuid) do
+      {:ok, uuid} -> Ecto.UUID.cast(uuid)
+      _ -> :error
+    end
+  end
+
+  # A decoder that has no clause matching the input (e.g. one without a
+  # catch-all `decode/1` clause) is treated as rejecting the input rather
+  # than crashing the caller.
+  defp call_decode(encoder, shortuuid) do
+    encoder.decode(shortuuid)
+  rescue
+    error in FunctionClauseError ->
+      if error.module == encoder and error.function == :decode and error.arity == 1 do
+        :error
+      else
+        reraise error, current_stacktrace()
+      end
   end
 
   defp encode(encoder, uuid) do

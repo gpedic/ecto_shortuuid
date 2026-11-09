@@ -218,13 +218,16 @@ For more control, you can implement the `ShortUUID.Behaviour` (available since [
 ```elixir
 defmodule MyApp.CustomShortUUID do
   @behaviour ShortUUID.Behaviour
-  
+
   @impl true
   def encode(uuid) do
     # Your custom implementation
-    {:ok, "custom-" <> uuid}
+    case Ecto.UUID.cast(uuid) do
+      {:ok, uuid} -> {:ok, "custom-" <> uuid}
+      :error -> {:error, "Invalid UUID"}
+    end
   end
-  
+
   @impl true
   def encode!(uuid) do
     case encode(uuid) do
@@ -232,13 +235,16 @@ defmodule MyApp.CustomShortUUID do
       {:error, reason} -> raise ArgumentError, message: reason
     end
   end
-  
+
   @impl true
   def decode("custom-" <> uuid) do
     # Your custom implementation
     {:ok, uuid}
   end
-  
+
+  # Always reject anything you can't decode
+  def decode(_), do: {:error, "Invalid ShortUUID"}
+
   @impl true
   def decode!(encoded) do
     case decode(encoded) do
@@ -253,6 +259,12 @@ defmodule MyApp.CustomEctoUUID do
   use Ecto.ShortUUID.Builder, encoder: MyApp.CustomShortUUID
 end
 ```
+
+`cast/1` and `dump/1` only accept a string if `decode/1` returns `{:ok, uuid}`
+with a valid UUID, so `"custom-garbage"` above is rejected even though
+`decode/1` returns `{:ok, "garbage"}` for it. If `encode/1` doesn't return
+`{:ok, string}`, `cast/1` and `load/1` return `:error` and `generate/0`
+raises.
 
 This gives you complete control over encoding and decoding while maintaining compatibility with Ecto.
 
