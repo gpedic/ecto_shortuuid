@@ -23,3 +23,5 @@ erl_crash.dump
 ecto_shortuuid-*.tar
 
 .vscode
+# Dialyzer PLTs (see the :dialyzer config in mix.exs).
+/priv/plts/

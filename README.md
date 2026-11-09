@@ -268,6 +268,14 @@ raises.
 
 This gives you complete control over encoding and decoding while maintaining compatibility with Ecto.
 
+## Development
+
+`mix ci` runs the same checks as CI: unused/retired/vulnerable dependency
+checks (`deps.unlock --check-unused`, `hex.audit`, `deps.audit`), formatting,
+compilation with `--warnings-as-errors`, `credo --strict`, `sobelow`,
+`dialyzer` and the test suite. Benchmarks can be run with
+`mix run bench/shortuuid_bench.exs`.
+
 ## Documentation
 
 Additional documentation can

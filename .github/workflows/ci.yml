@@ -8,18 +8,41 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-22.04
-    name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
+    runs-on: ubuntu-24.04
+    name: Test (OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}} / shortuuid ${{matrix.shortuuid || 'locked'}})
     strategy:
+      fail-fast: false
       matrix:
-        elixir: ["1.14", "1.15"]
-        otp: ["24.3.4.9", "25.3.2.3"]
+        include:
+          # Oldest supported Elixir
+          - elixir: "1.15"
+            otp: "26"
+          - elixir: "1.17"
+            otp: "27"
+          # Latest; also reports coverage
+          - elixir: "1.20"
+            otp: "29"
+            coverage: true
+          # Older supported shortuuid releases (2.x and 3.x), see
+          # shortuuid_requirement/0 in mix.exs
+          - elixir: "1.15"
+            otp: "26"
+            shortuuid: "== 2.1.2"
+          - elixir: "1.20"
+            otp: "29"
+            shortuuid: "== 2.1.2"
+          - elixir: "1.15"
+            otp: "26"
+            shortuuid: "== 3.0.0"
+          - elixir: "1.20"
+            otp: "29"
+            shortuuid: "== 3.0.0"
     env:
       MIX_ENV: test
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SHORTUUID_VERSION: ${{ matrix.shortuuid }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup elixir
       uses: erlef/setup-beam@v1
@@ -27,14 +50,95 @@ jobs:
         elixir-version: ${{ matrix.elixir }}
         otp-version: ${{ matrix.otp }}
 
+    - name: Cache deps and _build
+      uses: actions/cache@v4
+      with:
+        path: |
+          deps
+          _build
+        key: test-${{ runner.os }}-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-shortuuid${{ matrix.shortuuid }}-${{ hashFiles('mix.lock') }}
+
     - name: Install Dependencies
       run: mix deps.get
+
+    - name: Compile
+      run: mix compile --warnings-as-errors --force
+
+    - name: Run Tests
+      if: ${{ !matrix.coverage }}
+      run: mix test --warnings-as-errors
+
+    - name: Run Tests with coverage
+      if: ${{ matrix.coverage }}
+      run: mix coveralls.github --warnings-as-errors
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  checks:
+    runs-on: ubuntu-24.04
+    name: Checks (format, credo, sobelow, audits, dialyzer)
+    env:
+      MIX_ENV: dev
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup elixir
+      id: beam
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: "1.20"
+        otp-version: "29"
+
+    - name: Cache deps and _build
+      uses: actions/cache@v4
+      with:
+        path: |
+          deps
+          _build
+        key: checks-${{ runner.os }}-otp${{ steps.beam.outputs.otp-version }}-elixir${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}
+
+    - name: Restore Dialyzer PLTs
+      id: plt-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: priv/plts
+        key: plts-${{ runner.os }}-otp${{ steps.beam.outputs.otp-version }}-elixir${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}
+        restore-keys: plts-${{ runner.os }}-otp${{ steps.beam.outputs.otp-version }}-elixir${{ steps.beam.outputs.elixir-version }}-
+
+    - name: Install Dependencies
+      run: mix deps.get
+
+    - name: Check for unused dependencies
+      run: mix deps.unlock --check-unused
+
+    - name: Check for retired dependencies
+      run: mix hex.audit
+
+    - name: Check dependencies for security advisories
+      run: mix deps.audit
 
     - name: Validate Formatting
       run: mix format --check-formatted
 
+    - name: Compile
+      run: mix compile --warnings-as-errors --force
+
     - name: Run Credo
       run: mix credo --strict
 
-    - name: Run Tests
-      run: MIX_ENV=test mix coveralls.github
+    - name: Run Sobelow
+      run: mix sobelow --exit low --private
+
+    - name: Build Dialyzer PLTs
+      run: mkdir -p priv/plts && mix dialyzer --plt
+
+    - name: Save Dialyzer PLTs
+      if: steps.plt-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: priv/plts
+        key: ${{ steps.plt-cache.outputs.cache-primary-key }}
+
+    - name: Run Dialyzer
+      run: mix dialyzer --format github
