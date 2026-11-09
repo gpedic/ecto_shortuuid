@@ -42,25 +42,14 @@ defmodule Ecto.ShortUUID.Builder do
 
     quote do
       @behaviour Ecto.Type
-      alias Ecto.UUID
 
       @encoder unquote(encoder)
       unquote(check_module)
 
       @typedoc """
-      A hex-encoded UUID string.
+      A ShortUUID string, as produced by the encoder.
       """
-      @type uuid :: <<_::288>>
-
-      @typedoc """
-      A ShortUUID string.
-      """
-      @type shortuuid :: binary
-
-      @typedoc """
-      A raw binary representation of a UUID.
-      """
-      @type raw :: <<_::128>>
+      @type t :: String.t()
 
       @doc """
       Returns the underlying schema type for the custom type.
@@ -86,7 +75,7 @@ defmodule Ecto.ShortUUID.Builder do
       - `:error` on failure
       """
       @impl true
-      @spec cast(uuid() | shortuuid() | any()) :: {:ok, shortuuid()} | :error
+      @spec cast(term()) :: {:ok, t()} | :error
       def cast(value), do: unquote(__MODULE__).cast(@encoder, value)
 
       @doc """
@@ -99,7 +88,7 @@ defmodule Ecto.ShortUUID.Builder do
       Raises an `ArgumentError` if given a string UUID instead of binary.
       """
       @impl true
-      @spec load(raw() | any()) :: {:ok, shortuuid()} | :error
+      @spec load(term()) :: {:ok, t()} | :error
       def load(value), do: unquote(__MODULE__).load(@encoder, value)
 
       @doc """
@@ -114,7 +103,7 @@ defmodule Ecto.ShortUUID.Builder do
       - `:error` on failure
       """
       @impl true
-      @spec dump(shortuuid() | uuid() | any()) :: {:ok, raw()} | :error
+      @spec dump(term()) :: {:ok, <<_::128>>} | :error
       def dump(value), do: unquote(__MODULE__).dump(@encoder, value)
 
       @doc """
@@ -140,7 +129,7 @@ defmodule Ecto.ShortUUID.Builder do
 
       Raises a `RuntimeError` if the encoder fails to encode the generated UUID.
       """
-      @spec generate() :: shortuuid()
+      @spec generate() :: t()
       def generate, do: unquote(__MODULE__).generate(@encoder)
 
       @doc """
@@ -152,7 +141,7 @@ defmodule Ecto.ShortUUID.Builder do
       `@primary_key {:id, CustomShortUUIDType, autogenerate: true}`.
       """
       @impl true
-      @spec autogenerate() :: shortuuid()
+      @spec autogenerate() :: t()
       def autogenerate do
         generate()
       end
