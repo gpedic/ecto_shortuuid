@@ -62,21 +62,7 @@ defmodule Ecto.ShortUUID.Builder do
       """
       @impl true
       @spec cast(uuid() | shortuuid() | any()) :: {:ok, shortuuid()} | :error
-      def cast(<<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = uuid) do
-        case UUID.cast(uuid) do
-          :error -> :error
-          {:ok, casted} -> @encoder.encode(casted)
-        end
-      end
-
-      def cast(shortuuid) when is_binary(shortuuid) do
-        case @encoder.decode(shortuuid) do
-          {:ok, _} -> {:ok, shortuuid}
-          {:error, _} -> :error
-        end
-      end
-
-      def cast(_), do: :error
+      def cast(value), do: unquote(__MODULE__).cast(@encoder, value)
 
       @doc """
       Loads a binary UUID from the database and converts it to ShortUUID format.
@@ -89,12 +75,7 @@ defmodule Ecto.ShortUUID.Builder do
       """
       @impl true
       @spec load(raw() | any()) :: {:ok, shortuuid()} | :error
-      def load(uuid) do
-        case UUID.load(uuid) do
-          {:ok, uuid} -> @encoder.encode(uuid)
-          _ -> :error
-        end
-      end
+      def load(value), do: unquote(__MODULE__).load(@encoder, value)
 
       @doc """
       Dumps a ShortUUID or standard UUID to binary format for database storage.
@@ -142,16 +123,16 @@ defmodule Ecto.ShortUUID.Builder do
 
       @doc """
       Generates a ShortUUID string based on a version 4 (random) UUID.
+
+      Raises a `RuntimeError` if the encoder fails to encode the generated UUID.
       """
       @spec generate() :: shortuuid()
-      def generate do
-        UUID.generate()
-        |> @encoder.encode()
-        |> elem(1)
-      end
+      def generate, do: unquote(__MODULE__).generate(@encoder)
 
       @doc """
       Generates a random ShortUUID string for use in primary keys.
+
+      Raises a `RuntimeError` if the encoder fails to encode the generated UUID.
 
       This is called by Ecto when a record is inserted if the schema has
       `@primary_key {:id, CustomShortUUIDType, autogenerate: true}`.
@@ -161,6 +142,55 @@ defmodule Ecto.ShortUUID.Builder do
       def autogenerate do
         generate()
       end
+    end
+  end
+
+  # The functions below implement the callbacks of the generated types. They
+  # live here rather than in the `quote` above so they are not duplicated into
+  # every type module, and so the compiler does not type-check them against one
+  # specific encoder.
+
+  @doc false
+  def cast(encoder, <<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = uuid) do
+    with {:ok, casted} <- Ecto.UUID.cast(uuid) do
+      encode(encoder, casted)
+    end
+  end
+
+  def cast(encoder, shortuuid) when is_binary(shortuuid) do
+    case encoder.decode(shortuuid) do
+      {:ok, _} -> {:ok, shortuuid}
+      {:error, _} -> :error
+    end
+  end
+
+  def cast(_encoder, _value), do: :error
+
+  @doc false
+  def load(encoder, value) do
+    with {:ok, uuid} <- Ecto.UUID.load(value) do
+      encode(encoder, uuid)
+    end
+  end
+
+  @doc false
+  def generate(encoder) do
+    uuid = Ecto.UUID.generate()
+
+    case encoder.encode(uuid) do
+      {:ok, shortuuid} when is_binary(shortuuid) ->
+        shortuuid
+
+      other ->
+        raise "#{inspect(encoder)}.encode/1 failed to encode generated UUID " <>
+                "#{inspect(uuid)}, got: #{inspect(other)}"
+    end
+  end
+
+  defp encode(encoder, uuid) do
+    case encoder.encode(uuid) do
+      {:ok, shortuuid} when is_binary(shortuuid) -> {:ok, shortuuid}
+      _ -> :error
     end
   end
 end
