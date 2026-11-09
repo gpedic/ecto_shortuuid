@@ -1,5 +1,49 @@
 # Changelog
 
+**0.4.1**
+
+### Fixes
+
+* Encoder errors no longer leak out of the type. `cast/1` and `load/1` return
+  `:error` unless the encoder returns `{:ok, string}` (an `{:error, reason}`
+  used to be passed through, which could crash `Ecto.Changeset.cast/4`
+  instead of producing an "is invalid" error). `generate/0` and
+  `autogenerate/0` raise a `RuntimeError` instead of returning the encoder's
+  error message as an ID.
+* `cast/1` and `dump/1` reject input the decoder used to tolerate. A
+  ShortUUID string is only accepted if the encoder's `decode/1` returns
+  `{:ok, uuid}` with a valid UUID, so a custom encoder's decoded value that
+  isn't a UUID is rejected by `cast/1` too, not only by `dump/1`. With the
+  default `ShortUUID` encoder the string must also be 22 characters long:
+  shortuuid 2.x padded shorter strings, so `cast("9VprZJ")`, `cast("")` and
+  `dump("")` used to succeed; they now return `:error`. `cast/1` and
+  `dump/1` accept exactly the same values.
+* A `FunctionClauseError` raised by the encoder's own `decode/1` (no clause
+  matching the input) is treated as invalid input and returns `:error`.
+* The README "Approach 2" encoder example is fixed (it had no catch-all
+  `decode/1` clause).
+
+### Other changes
+
+* `Ecto.ShortUUID` documentation examples are doctested, and the test suite
+  covers exact values, custom alphabets, `{:array, Ecto.ShortUUID}`, embeds
+  and changesets, and runs against shortuuid 2.1, 3.0 and 4.x.
+* Development: benchfella replaced by benchee, dev/test dependencies updated
+  (excoveralls 0.18 no longer pulls in hackney), the unused `:logger`
+  extra application removed, sobelow, mix_audit and a `mix ci` alias added.
+  CI runs Elixir 1.15/1.17/1.20 against shortuuid 2.1.2, 3.0.0 and 4.x,
+  plus format, credo, sobelow, dependency audits and dialyzer. Dependabot
+  enabled.
+* `CHANGELOG.md` is included in the Hex package.
+
+**0.4.0**
+* Add `Ecto.ShortUUID.Builder` to define Ecto types for custom ShortUUID
+  encoders: `use Ecto.ShortUUID.Builder, encoder: MyEncoder`. `Ecto.ShortUUID`
+  is now itself defined with the builder
+* Support custom alphabets through `ShortUUID.Builder` or modules implementing
+  `ShortUUID.Behaviour` (requires shortuuid 4.1)
+* Add documentation for each callback and extend the test suite
+
 **0.3.0**
 * Basic support for shortuuid v4, default alphabet only
 
