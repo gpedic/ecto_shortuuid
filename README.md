@@ -280,6 +280,12 @@ UUID), because `encode/1` would produce the lowercase form. If `encode/1`
 doesn't return `{:ok, string}`, `cast/1` and `load/1` return `:error` and
 `generate/0` raises.
 
+The encoder is checked when the Ecto type is compiled: compilation fails with
+an `ArgumentError` if the `:encoder` option is missing, the module can't be
+compiled or loaded, or it doesn't export `encode/1` and `decode/1`. Define the
+encoder in its own file, above the Ecto type in the same file, or nested inside
+the Ecto type module.
+
 This gives you complete control over encoding and decoding while maintaining compatibility with Ecto.
 
 ## Development

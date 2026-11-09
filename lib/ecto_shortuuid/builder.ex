@@ -12,7 +12,14 @@ defmodule Ecto.ShortUUID.Builder do
         use Ecto.ShortUUID.Builder, encoder: MyBase58UUID
       end
 
-  The specified encoder must be a [ShortUUID](https://github.com/gpedic/ex_shortuuid) compatible module.
+  The specified encoder must be a [ShortUUID](https://github.com/gpedic/ex_shortuuid)
+  compatible module exporting at least `encode/1` and `decode/1`. It is checked
+  when the type module is compiled: a missing `:encoder` option, a module that
+  can't be compiled or loaded, or one without `encode/1` and `decode/1` raises
+  an `ArgumentError` (unless the encoder is only known at runtime, e.g. a
+  variable in an unquote fragment). Because the encoder must be compiled first,
+  it can't be defined later in the same file as the type that uses it; define
+  it in its own file, above the type, or nested inside the type module.
 
   `cast/1` and `dump/1` only accept a ShortUUID string if `encoder.decode/1`
   returns `{:ok, uuid}` with a valid UUID and `encoder.encode/1` turns that
@@ -22,13 +29,23 @@ defmodule Ecto.ShortUUID.Builder do
   """
 
   defmacro __using__(opts) do
-    encoder = Keyword.fetch!(opts, :encoder)
+    encoder = opts |> Keyword.get(:encoder) |> Macro.expand(__CALLER__)
+    validate_encoder_option!(encoder)
+
+    # Whether a module encoder exists and exports encode/1 and decode/1 is
+    # checked once the type module's body has been evaluated, so an encoder
+    # nested in the type module before `use` is already defined.
+    check_module =
+      if is_atom(encoder) do
+        quote do: @before_compile({unquote(__MODULE__), :__validate_encoder_module__})
+      end
 
     quote do
       @behaviour Ecto.Type
       alias Ecto.UUID
 
       @encoder unquote(encoder)
+      unquote(check_module)
 
       @typedoc """
       A hex-encoded UUID string.
@@ -140,6 +157,52 @@ defmodule Ecto.ShortUUID.Builder do
         generate()
       end
     end
+  end
+
+  defp validate_encoder_option!(nil) do
+    raise ArgumentError,
+          "use Ecto.ShortUUID.Builder requires an :encoder option, " <>
+            "e.g. `use Ecto.ShortUUID.Builder, encoder: ShortUUID`"
+  end
+
+  defp validate_encoder_option!(encoder) when is_atom(encoder), do: :ok
+
+  defp validate_encoder_option!(encoder) do
+    # Anything other than a literal (e.g. a variable inside an unquote
+    # fragment) is only known at runtime and can't be checked here.
+    if Macro.quoted_literal?(encoder) do
+      raise ArgumentError,
+            "the :encoder given to Ecto.ShortUUID.Builder must be a module, " <>
+              "got: #{Macro.to_string(encoder)}"
+    end
+  end
+
+  @doc false
+  defmacro __validate_encoder_module__(env) do
+    encoder = Module.get_attribute(env.module, :encoder)
+
+    case Code.ensure_compiled(encoder) do
+      {:module, ^encoder} ->
+        missing =
+          for {fun, arity} <- [encode: 1, decode: 1],
+              not function_exported?(encoder, fun, arity),
+              do: "#{fun}/#{arity}"
+
+        if missing != [] do
+          raise ArgumentError,
+                "the :encoder given to Ecto.ShortUUID.Builder, #{inspect(encoder)}, " <>
+                  "does not export #{Enum.join(missing, " and ")}"
+        end
+
+      {:error, reason} ->
+        raise ArgumentError,
+              "the :encoder given to Ecto.ShortUUID.Builder, #{inspect(encoder)}, " <>
+                "could not be compiled or loaded (reason: #{inspect(reason)}). " <>
+                "If it is defined further down in the same file, move it above " <>
+                "the type or into its own file"
+    end
+
+    nil
   end
 
   # The functions below implement the callbacks of the generated types. They
