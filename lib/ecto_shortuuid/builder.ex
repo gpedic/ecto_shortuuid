@@ -24,11 +24,31 @@ defmodule Ecto.ShortUUID.Builder do
   uses it; define it in its own file, above the type, or nested inside the type
   module.
 
-  `cast/1` and `dump/1` only accept a ShortUUID string if `encoder.decode/1`
-  returns `{:ok, uuid}` with a valid UUID and `encoder.encode/1` turns that
-  UUID back into the same string. Every accepted ShortUUID is therefore the
-  canonical encoding of its UUID: input the decoder merely tolerates (e.g.
-  truncated strings or a different letter case) is rejected.
+  ## Canonical encoding
+
+  `cast/1` only accepts the canonical ShortUUID of a UUID, i.e. the exact
+  string `encoder.encode/1` produces for it. `equal?/2` relies on this, and it
+  keeps a single spelling of each ID in changesets and query results.
+
+  How that is ensured depends on the encoder, decided when the type module is
+  compiled:
+
+    * `ShortUUID`, and encoders whose `__shortuuid__/0` (an optional
+      `ShortUUID.Behaviour` callback added in shortuuid 4.3, implemented by
+      `ShortUUID.Builder` modules) returns a map with `canonical: true`,
+      guarantee that `decode/1` only accepts canonical strings. `cast/1`
+      just decodes.
+    * For any other encoder, `cast/1` decodes the string, encodes the result
+      again and rejects the input unless it gets the same string back. Input
+      the decoder merely tolerates (e.g. a different letter case or extra
+      padding) is rejected, at the cost of one extra `encode/1` call.
+
+  `dump/1` only decodes: every string the decoder accepts as a valid UUID is
+  dumped, canonical or not.
+
+  A hand-written encoder should only claim `canonical: true` if its `decode/1`
+  accepts exactly one string per UUID. Only the `:canonical` key of the
+  `__shortuuid__/0` map is read.
   """
 
   defmacro __using__(opts) do
@@ -38,9 +58,14 @@ defmodule Ecto.ShortUUID.Builder do
     # Whether a module encoder exists and exports encode/1 and decode/1 is
     # checked once the type module's body has been evaluated, so an encoder
     # nested in the type module before `use` is already defined.
+    # The encoder's canonical flag (see "Canonical encoding" above) is
+    # defined by the same hook. Encoders only known at runtime always get
+    # the encode round trip.
     check_module =
       if is_atom(encoder) do
         quote do: @before_compile({unquote(__MODULE__), :__validate_encoder_module__})
+      else
+        quote do: defp(__canonical_encoder__, do: false)
       end
 
     quote do
@@ -69,9 +94,8 @@ defmodule Ecto.ShortUUID.Builder do
 
       Accepts:
       - Standard UUID strings (converts them to ShortUUID format)
-      - ShortUUID strings, if the encoder decodes them to a valid UUID and
-        encoding that UUID gives back the same string (i.e. only the
-        canonical ShortUUID of a UUID is accepted)
+      - ShortUUID strings, if they are the canonical encoding of a valid
+        UUID (see "Canonical encoding" in `Ecto.ShortUUID.Builder`)
 
       Returns:
       - `{:ok, shortuuid}` on success
@@ -79,7 +103,7 @@ defmodule Ecto.ShortUUID.Builder do
       """
       @impl true
       @spec cast(term()) :: {:ok, t()} | :error
-      def cast(value), do: unquote(__MODULE__).cast(@encoder, value)
+      def cast(value), do: unquote(__MODULE__).cast(@encoder, __canonical_encoder__(), value)
 
       @doc """
       Loads a binary UUID from the database and converts it to ShortUUID format.
@@ -97,9 +121,10 @@ defmodule Ecto.ShortUUID.Builder do
       @doc """
       Dumps a ShortUUID or standard UUID to binary format for database storage.
 
-      Accepts the same values as `cast/1`:
-      - ShortUUID strings
+      Accepts:
       - Standard UUID strings
+      - ShortUUID strings the encoder decodes to a valid UUID. Unlike
+        `cast/1`, this does not require the canonical encoding.
 
       Returns:
       - `{:ok, binary_uuid}` on success
@@ -130,10 +155,10 @@ defmodule Ecto.ShortUUID.Builder do
       UUID-shaped, in which case they are equal if they `cast/1` to the same
       ShortUUID; two different non-UUID strings are never equal. This relies on
       the encoding being canonical, i.e. exactly one string per UUID, which
-      `cast/1` and `dump/1` guarantee: they only accept a ShortUUID string
-      that the encoder turns back into itself (see `Ecto.ShortUUID.Builder`),
-      so no other spelling of an ID can be stored or loaded. It never calls
-      `decode/1` and does not raise on invalid input.
+      `cast/1` guarantees (see "Canonical encoding" in
+      `Ecto.ShortUUID.Builder`), and `load/1` always returns the canonical
+      encoding. It never calls `decode/1` and never raises unless the
+      encoder's `encode/1` does.
 
       See `c:Ecto.Type.equal?/2`.
       """
@@ -205,6 +230,10 @@ defmodule Ecto.ShortUUID.Builder do
                   "does not export #{Enum.join(missing, " and ")}"
         end
 
+        quote do
+          defp __canonical_encoder__, do: unquote(canonical_encoder?(encoder))
+        end
+
       {:error, reason} ->
         raise ArgumentError,
               "the :encoder given to Ecto.ShortUUID.Builder, #{inspect(encoder)}, " <>
@@ -212,8 +241,13 @@ defmodule Ecto.ShortUUID.Builder do
                 "If it is defined further down in the same file, move it above " <>
                 "the type or into its own file"
     end
+  end
 
-    nil
+  defp canonical_encoder?(ShortUUID), do: true
+
+  defp canonical_encoder?(encoder) do
+    function_exported?(encoder, :__shortuuid__, 0) and
+      match?(%{canonical: true}, encoder.__shortuuid__())
   end
 
   # The functions below implement the callbacks of the generated types. They
@@ -222,19 +256,35 @@ defmodule Ecto.ShortUUID.Builder do
   # specific encoder.
 
   @doc false
-  def cast(encoder, <<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = uuid) do
+  def cast(encoder, canonical? \\ true, value)
+
+  def cast(encoder, _canonical?, <<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = uuid) do
     with {:ok, casted} <- Ecto.UUID.cast(uuid) do
       encode(encoder, casted)
     end
   end
 
-  def cast(encoder, shortuuid) when is_binary(shortuuid) do
+  def cast(encoder, true, shortuuid) when is_binary(shortuuid) do
     with {:ok, _uuid} <- decode(encoder, shortuuid) do
       {:ok, shortuuid}
     end
   end
 
-  def cast(_encoder, _value), do: :error
+  # The encoder doesn't guarantee that decode/1 only accepts canonical
+  # strings, so encode the UUID again and require the same string back. This
+  # rejects input the decoder tolerates but would never produce itself
+  # (truncated or padded strings, values wrapping around 128 bits, other
+  # letter cases, ...).
+  def cast(encoder, false, shortuuid) when is_binary(shortuuid) do
+    with {:ok, uuid} <- decode(encoder, shortuuid),
+         {:ok, ^shortuuid} <- encode(encoder, uuid) do
+      {:ok, shortuuid}
+    else
+      _ -> :error
+    end
+  end
+
+  def cast(_encoder, _canonical?, _value), do: :error
 
   @doc false
   def load(encoder, value) do
@@ -292,16 +342,11 @@ defmodule Ecto.ShortUUID.Builder do
   # anything of another length is rejected without decoding it.
   defp decode(ShortUUID, shortuuid) when byte_size(shortuuid) != 22, do: :error
 
-  # Decodes a ShortUUID and checks that the result is a valid UUID and that
-  # encoding that UUID gives back exactly the same string. The round trip
-  # rejects input the decoder tolerates but would never produce itself
-  # (truncated or padded strings, values wrapping around 128 bits, other
-  # letter cases, ...), so every accepted ShortUUID is the canonical encoding
-  # of its UUID. Returns the hex-encoded UUID.
+  # Decodes a ShortUUID and checks that the result is a valid UUID. Returns
+  # the lowercase hyphenated UUID.
   defp decode(encoder, shortuuid) do
     with {:ok, uuid} <- call_decode(encoder, shortuuid),
-         {:ok, uuid} <- Ecto.UUID.cast(uuid),
-         {:ok, ^shortuuid} <- encode(encoder, uuid) do
+         {:ok, uuid} <- Ecto.UUID.cast(uuid) do
       {:ok, uuid}
     else
       _ -> :error

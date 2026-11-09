@@ -57,12 +57,16 @@ defmodule Ecto.ShortUUID.DecoderTest do
   end
 
   describe "round trip" do
-    test "rejects strings that don't encode back to themselves" do
+    test "cast/1 rejects strings that don't encode back to themselves" do
       # LaxEncoder decodes "x" <> uppercase UUID, but encodes to lowercase.
       upper = "x" <> String.upcase(@test_uuid)
       assert :error == LaxType.cast(upper)
-      assert :error == LaxType.dump(upper)
       assert {:ok, "x" <> @test_uuid} == LaxType.cast(@test_uuid)
+    end
+
+    test "dump/1 accepts anything that decodes to a valid UUID" do
+      upper = "x" <> String.upcase(@test_uuid)
+      assert Ecto.UUID.dump(@test_uuid) == LaxType.dump(upper)
     end
   end
 
@@ -121,6 +125,8 @@ defmodule Ecto.ShortUUID.DecoderTest do
   end
 
   describe "cast/1 and dump/1 consistency" do
+    # dump/1 may accept more than cast/1 (non-canonical spellings), but
+    # everything cast/1 accepts must dump, to the same UUID as its cast.
     @inputs [
       @test_uuid,
       "9VprZJ9U7Tgg2PJ8BfTAek",
@@ -137,20 +143,14 @@ defmodule Ecto.ShortUUID.DecoderTest do
     ]
 
     for type <- [Ecto.ShortUUID, LaxType, PartialType, InfallibleType] do
-      test "#{inspect(type)} casts exactly the values it can dump" do
+      test "#{inspect(type)} can dump every value it casts" do
         type = unquote(type)
 
-        for input <- @inputs do
-          cast_ok? = match?({:ok, _}, type.cast(input))
-          dump_ok? = match?({:ok, _}, type.dump(input))
+        for input <- @inputs, {:ok, casted} <- [type.cast(input)] do
+          assert {:ok, binary} = type.dump(input),
+                 "#{inspect(type)}: casts but doesn't dump #{inspect(input)}"
 
-          assert cast_ok? == dump_ok?,
-                 "#{inspect(type)}: cast/1 and dump/1 disagree on #{inspect(input)}"
-
-          if cast_ok? do
-            {:ok, casted} = type.cast(input)
-            assert type.dump(casted) == type.dump(input)
-          end
+          assert type.dump(casted) == {:ok, binary}
         end
       end
     end
