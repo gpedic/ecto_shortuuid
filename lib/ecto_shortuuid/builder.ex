@@ -116,13 +116,32 @@ defmodule Ecto.ShortUUID.Builder do
       def embed_as(_), do: :self
 
       @doc """
-      Ecto v3 callback
-      Checks if two terms are semantically equal.
-      https://hexdocs.pm/ecto/Ecto.Type.html#c:equal?/2
+      Checks if two terms represent the same ID.
+
+      Used by Ecto (e.g. `Ecto.Changeset.change/2`) to decide whether a field
+      changed. A ShortUUID and the hyphenated UUID it encodes are equal, as are
+      two UUIDs that differ only in case.
+
+      Terms that are `==` are always equal. Otherwise, the terms are only
+      converted when both are binaries and at least one of them is
+      UUID-shaped, in which case they are equal if they `cast/1` to the same
+      ShortUUID; two different non-UUID strings are never equal. This relies on
+      the encoding being canonical, i.e. exactly one string per UUID, which
+      `cast/1` and `dump/1` guarantee: they only accept a ShortUUID string
+      that the encoder turns back into itself (see `Ecto.ShortUUID.Builder`),
+      so no other spelling of an ID can be stored or loaded. It never calls
+      `decode/1` and does not raise on invalid input.
+
+      See `c:Ecto.Type.equal?/2`.
       """
       @impl true
       @spec equal?(term(), term()) :: boolean()
-      def equal?(term1, term2), do: term1 == term2
+      def equal?(term, term), do: true
+
+      def equal?(term1, term2) when is_binary(term1) and is_binary(term2),
+        do: unquote(__MODULE__).equal?(@encoder, term1, term2)
+
+      def equal?(_term1, _term2), do: false
 
       @doc """
       Generates a ShortUUID string based on a version 4 (random) UUID.
@@ -233,6 +252,24 @@ defmodule Ecto.ShortUUID.Builder do
   end
 
   def dump(_encoder, _value), do: :error
+
+  @doc false
+  def equal?(encoder, term1, term2) do
+    # Thanks to the canonical encoding, comparing the casts of both terms
+    # reduces to at most one encode/1 call and no decode/1 calls.
+    case {uuid_shaped?(term1), uuid_shaped?(term2)} do
+      {true, true} -> same_uuid?(Ecto.UUID.cast(term1), Ecto.UUID.cast(term2))
+      {true, false} -> cast(encoder, term1) == {:ok, term2}
+      {false, true} -> cast(encoder, term2) == {:ok, term1}
+      {false, false} -> false
+    end
+  end
+
+  defp same_uuid?({:ok, uuid}, {:ok, uuid}), do: true
+  defp same_uuid?(_, _), do: false
+
+  defp uuid_shaped?(<<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>>), do: true
+  defp uuid_shaped?(_), do: false
 
   @doc false
   def generate(encoder) do

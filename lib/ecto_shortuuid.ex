@@ -20,6 +20,9 @@ defmodule Ecto.ShortUUID do
       iex> Ecto.ShortUUID.load(<<42, 22, 46, 229, 2, 244, 71, 1, 158, 135, 114, 118, 44, 188, 229, 226>>)
       {:ok, "9VprZJ9U7Tgg2PJ8BfTAek"}
 
+      iex> Ecto.ShortUUID.equal?("9VprZJ9U7Tgg2PJ8BfTAek", "2a162ee5-02f4-4701-9e87-72762cbce5e2")
+      true
+
   See `Ecto.ShortUUID.Builder` for types using a custom ShortUUID encoder.
   """
   use Ecto.ShortUUID.Builder, encoder: ShortUUID

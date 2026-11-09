@@ -110,6 +110,7 @@ defmodule Ecto.ShortUUID.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18", only: :test, runtime: false},
       {:benchee, "~> 1.5", only: :dev, runtime: false},
+      {:stream_data, "~> 1.1", only: [:dev, :test]},
       {:sobelow, "~> 0.18", only: :dev, runtime: false},
       {:mix_audit, "~> 2.1", only: :dev, runtime: false},
       {:shortuuid, shortuuid_requirement()},
