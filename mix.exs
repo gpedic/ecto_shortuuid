@@ -113,17 +113,8 @@ defmodule Ecto.ShortUUID.MixProject do
       {:stream_data, "~> 1.1", only: [:dev, :test]},
       {:sobelow, "~> 0.18", only: :dev, runtime: false},
       {:mix_audit, "~> 2.1", only: :dev, runtime: false},
-      {:shortuuid, shortuuid_requirement()},
+      {:shortuuid, "~> 4.1"},
       {:ecto, "~> 3.0"}
     ]
-  end
-
-  # CI sets SHORTUUID_VERSION (e.g. "== 3.0.0") to run the suite against the
-  # oldest supported shortuuid release instead of the locked one.
-  defp shortuuid_requirement do
-    case System.get_env("SHORTUUID_VERSION") do
-      version when version in [nil, ""] -> "~> 4.0 or ~> 3.0"
-      version -> version
-    end
   end
 end

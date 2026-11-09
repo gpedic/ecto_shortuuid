@@ -13,13 +13,16 @@ defmodule Ecto.ShortUUID.Builder do
       end
 
   The specified encoder must be a [ShortUUID](https://github.com/gpedic/ex_shortuuid)
-  compatible module exporting at least `encode/1` and `decode/1`. It is checked
-  when the type module is compiled: a missing `:encoder` option, a module that
-  can't be compiled or loaded, or one without `encode/1` and `decode/1` raises
-  an `ArgumentError` (unless the encoder is only known at runtime, e.g. a
-  variable in an unquote fragment). Because the encoder must be compiled first,
-  it can't be defined later in the same file as the type that uses it; define
-  it in its own file, above the type, or nested inside the type module.
+  compatible module, ideally one implementing `ShortUUID.Behaviour` (as modules
+  built with `ShortUUID.Builder` do). Only `encode/1` and `decode/1` are used.
+
+  The encoder is checked when the type module is compiled: a missing `:encoder`
+  option, a module that can't be compiled or loaded, or one without `encode/1`
+  and `decode/1` raises an `ArgumentError` (unless the encoder is only known at
+  runtime, e.g. a variable in an unquote fragment). Because the encoder must be
+  compiled first, it can't be defined later in the same file as the type that
+  uses it; define it in its own file, above the type, or nested inside the type
+  module.
 
   `cast/1` and `dump/1` only accept a ShortUUID string if `encoder.decode/1`
   returns `{:ok, uuid}` with a valid UUID and `encoder.encode/1` turns that

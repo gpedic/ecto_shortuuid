@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-24.04
-    name: Test (OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}} / shortuuid ${{matrix.shortuuid || 'locked'}})
+    name: Test (OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}})
     strategy:
       fail-fast: false
       matrix:
@@ -23,16 +23,8 @@ jobs:
           - elixir: "1.20"
             otp: "29"
             coverage: true
-          # Oldest supported shortuuid release (3.x), see shortuuid_requirement/0 in mix.exs
-          - elixir: "1.15"
-            otp: "26"
-            shortuuid: "== 3.0.0"
-          - elixir: "1.20"
-            otp: "29"
-            shortuuid: "== 3.0.0"
     env:
       MIX_ENV: test
-      SHORTUUID_VERSION: ${{ matrix.shortuuid }}
 
     steps:
     - uses: actions/checkout@v4
@@ -49,7 +41,7 @@ jobs:
         path: |
           deps
           _build
-        key: test-${{ runner.os }}-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-shortuuid${{ matrix.shortuuid }}-${{ hashFiles('mix.lock') }}
+        key: test-${{ runner.os }}-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-${{ hashFiles('mix.lock') }}
 
     - name: Install Dependencies
       run: mix deps.get

@@ -7,14 +7,12 @@ defmodule Ecto.ShortUUID.EqualTest do
   @other_uuid "b44f3c49-0403-4dcd-bd5f-e22ea6d48a4f"
   @other_short "a6ckmZcnop4qRVD8QVUVJt"
 
-  if Code.ensure_loaded?(ShortUUID.Builder) do
-    defmodule Base58 do
-      use ShortUUID.Builder, alphabet: :base58
-    end
+  defmodule Base58 do
+    use ShortUUID.Builder, alphabet: :base58
+  end
 
-    defmodule Base58Type do
-      use Ecto.ShortUUID.Builder, encoder: Base58
-    end
+  defmodule Base58Type do
+    use Ecto.ShortUUID.Builder, encoder: Base58
   end
 
   defmodule Schema do
@@ -25,10 +23,6 @@ defmodule Ecto.ShortUUID.EqualTest do
       field(:ids, {:array, Ecto.ShortUUID})
     end
   end
-
-  # Resolved at runtime so this file compiles without warnings when
-  # ShortUUID.Builder (and therefore Base58Type) doesn't exist.
-  defp base58_type, do: Module.concat(__MODULE__, Base58Type)
 
   test "fixtures are consistent" do
     assert {:ok, @short} == Ecto.ShortUUID.cast(@uuid)
@@ -147,10 +141,8 @@ defmodule Ecto.ShortUUID.EqualTest do
   end
 
   describe "custom alphabet" do
-    @describetag :custom_alphabet
-
     test "the encoded form equals the UUID" do
-      type = base58_type()
+      type = Base58Type
       {:ok, short} = type.cast(@uuid)
 
       refute short == @short

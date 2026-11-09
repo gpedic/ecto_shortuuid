@@ -2,14 +2,12 @@ defmodule Ecto.ShortUUID.EqualPropertyTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  if Code.ensure_loaded?(ShortUUID.Builder) do
-    defmodule Base58 do
-      use ShortUUID.Builder, alphabet: :base58
-    end
+  defmodule Base58 do
+    use ShortUUID.Builder, alphabet: :base58
+  end
 
-    defmodule Base58Type do
-      use Ecto.ShortUUID.Builder, encoder: Base58
-    end
+  defmodule Base58Type do
+    use Ecto.ShortUUID.Builder, encoder: Base58
   end
 
   # Random UUID strings, built from random 128-bit binaries.
@@ -78,15 +76,10 @@ defmodule Ecto.ShortUUID.EqualPropertyTest do
     ])
   end
 
-  defp type(name), do: Module.concat(__MODULE__, name)
-
-  for {name, tags} <- [{Ecto.ShortUUID, []}, {Base58Type, [custom_alphabet: true]}] do
-    describe "#{inspect(name)}.equal?/2" do
-      @describetag tags
-
+  for type <- [Ecto.ShortUUID, Base58Type] do
+    describe "#{inspect(type)}.equal?/2" do
       setup do
-        type = if unquote(name) == Ecto.ShortUUID, do: Ecto.ShortUUID, else: type(unquote(name))
-        %{type: type}
+        %{type: unquote(type)}
       end
 
       property "all forms of the same ID are equal", %{type: type} do
