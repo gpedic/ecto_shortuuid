@@ -27,7 +27,7 @@ jobs:
       MIX_ENV: test
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup elixir
       uses: erlef/setup-beam@v1
@@ -36,7 +36,7 @@ jobs:
         otp-version: ${{ matrix.otp }}
 
     - name: Cache deps and _build
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           deps
@@ -66,7 +66,7 @@ jobs:
       MIX_ENV: dev
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup elixir
       id: beam
@@ -76,7 +76,7 @@ jobs:
         otp-version: "29"
 
     - name: Cache deps and _build
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           deps
@@ -85,7 +85,7 @@ jobs:
 
     - name: Restore Dialyzer PLTs
       id: plt-cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         path: priv/plts
         key: plts-${{ runner.os }}-otp${{ steps.beam.outputs.otp-version }}-elixir${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}
@@ -120,7 +120,7 @@ jobs:
 
     - name: Save Dialyzer PLTs
       if: steps.plt-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         path: priv/plts
         key: ${{ steps.plt-cache.outputs.cache-primary-key }}
