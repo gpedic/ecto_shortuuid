@@ -15,10 +15,10 @@ defmodule Ecto.ShortUUID.Builder do
   The specified encoder must be a [ShortUUID](https://github.com/gpedic/ex_shortuuid) compatible module.
 
   `cast/1` and `dump/1` only accept a ShortUUID string if `encoder.decode/1`
-  returns `{:ok, uuid}` with a valid UUID. With the default `ShortUUID`
-  encoder the string must also be 22 characters long, the length of every
-  ShortUUID it produces (shortuuid 2.x would otherwise decode shorter
-  strings by padding them).
+  returns `{:ok, uuid}` with a valid UUID and `encoder.encode/1` turns that
+  UUID back into the same string. Every accepted ShortUUID is therefore the
+  canonical encoding of its UUID: input the decoder merely tolerates (e.g.
+  truncated strings or a different letter case) is rejected.
   """
 
   defmacro __using__(opts) do
@@ -60,7 +60,9 @@ defmodule Ecto.ShortUUID.Builder do
 
       Accepts:
       - Standard UUID strings (converts them to ShortUUID format)
-      - ShortUUID strings, if the encoder decodes them to a valid UUID
+      - ShortUUID strings, if the encoder decodes them to a valid UUID and
+        encoding that UUID gives back the same string (i.e. only the
+        canonical ShortUUID of a UUID is accepted)
 
       Returns:
       - `{:ok, shortuuid}` on success
@@ -194,16 +196,22 @@ defmodule Ecto.ShortUUID.Builder do
     end
   end
 
-  # The default ShortUUID encoder only ever produces 22-character strings.
-  # shortuuid 2.x decodes shorter input (e.g. "9VprZJ" or "") by padding it,
-  # so anything of another length is rejected before decoding.
+  # The default ShortUUID encoder only ever produces 22-character strings, so
+  # anything of another length is rejected without decoding it.
   defp decode(ShortUUID, shortuuid) when byte_size(shortuuid) != 22, do: :error
 
-  # Decodes a ShortUUID and checks that the result is a valid UUID, returning
-  # it as a hex-encoded string.
+  # Decodes a ShortUUID and checks that the result is a valid UUID and that
+  # encoding that UUID gives back exactly the same string. The round trip
+  # rejects input the decoder tolerates but would never produce itself
+  # (truncated or padded strings, values wrapping around 128 bits, other
+  # letter cases, ...), so every accepted ShortUUID is the canonical encoding
+  # of its UUID. Returns the hex-encoded UUID.
   defp decode(encoder, shortuuid) do
-    case call_decode(encoder, shortuuid) do
-      {:ok, uuid} -> Ecto.UUID.cast(uuid)
+    with {:ok, uuid} <- call_decode(encoder, shortuuid),
+         {:ok, uuid} <- Ecto.UUID.cast(uuid),
+         {:ok, ^shortuuid} <- encode(encoder, uuid) do
+      {:ok, uuid}
+    else
       _ -> :error
     end
   end
