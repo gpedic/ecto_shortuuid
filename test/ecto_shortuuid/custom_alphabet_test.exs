@@ -1,37 +1,28 @@
 defmodule Ecto.ShortUUID.CustomAlphabetTest do
   use ExUnit.Case, async: true
 
-  # ShortUUID.Builder only exists in shortuuid >= 4.0; see test_helper.exs.
-  @moduletag :custom_alphabet
+  defmodule Base58 do
+    use ShortUUID.Builder, alphabet: :base58
+  end
 
-  if Code.ensure_loaded?(ShortUUID.Builder) do
-    defmodule Base58 do
-      use ShortUUID.Builder, alphabet: :base58
-    end
+  defmodule Base58Type do
+    use Ecto.ShortUUID.Builder, encoder: Base58
+  end
 
-    defmodule Base58Type do
-      use Ecto.ShortUUID.Builder, encoder: Base58
-    end
+  defmodule Base62 do
+    use ShortUUID.Builder, alphabet: :base62
+  end
 
-    defmodule Base62 do
-      use ShortUUID.Builder, alphabet: :base62
-    end
-
-    defmodule Base62Type do
-      use Ecto.ShortUUID.Builder, encoder: Base62
-    end
+  defmodule Base62Type do
+    use Ecto.ShortUUID.Builder, encoder: Base62
   end
 
   @test_uuid "2a162ee5-02f4-4701-9e87-72762cbce5e2"
   @test_uuid_binary <<0x2A, 0x16, 0x2E, 0xE5, 0x02, 0xF4, 0x47, 0x01, 0x9E, 0x87, 0x72, 0x76,
                       0x2C, 0xBC, 0xE5, 0xE2>>
 
-  # Resolved at runtime so this file compiles without warnings when the
-  # modules above aren't defined.
-  defp type(name), do: Module.concat(__MODULE__, name)
-
   test "base58 type encodes with the base58 alphabet" do
-    type = type(Base58Type)
+    type = Base58Type
     short = "6CRqjx8HiL65itHBngudWH"
 
     assert {:ok, short} === type.cast(@test_uuid)
@@ -42,9 +33,9 @@ defmodule Ecto.ShortUUID.CustomAlphabetTest do
     assert Ecto.UUID.dump(@test_uuid) === type.dump(short)
   end
 
-  for name <- [Base58Type, Base62Type] do
-    test "#{inspect(name)} round trips random UUIDs" do
-      type = type(unquote(name))
+  for type <- [Base58Type, Base62Type] do
+    test "#{inspect(type)} round trips random UUIDs" do
+      type = unquote(type)
 
       for _ <- 1..50 do
         uuid = Ecto.UUID.generate()
@@ -63,8 +54,8 @@ defmodule Ecto.ShortUUID.CustomAlphabetTest do
       assert {:ok, ^generated} = type.cast(generated)
     end
 
-    test "#{inspect(name)} rejects invalid input" do
-      type = type(unquote(name))
+    test "#{inspect(type)} rejects invalid input" do
+      type = unquote(type)
 
       assert :error === type.cast("")
       assert :error === type.cast("not a valid id!")

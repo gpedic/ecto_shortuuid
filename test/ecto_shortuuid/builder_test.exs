@@ -3,10 +3,10 @@ defmodule Ecto.ShortUUID.BuilderTest do
 
   # Mock implementation of ShortUUID with custom format
   defmodule MockShortUUID do
-    # Deliberately no `@behaviour ShortUUID.Behaviour`: it only exists in
-    # shortuuid >= 4.1 and the suite also runs against shortuuid 3.x.
+    @behaviour ShortUUID.Behaviour
 
     # Handle binary UUIDs
+    @impl true
     def encode(<<_::128>> = uuid) do
       # Simply prefix the hex string with "mock-"
       {:ok, "mock-" <> Base.encode16(uuid, case: :lower)}
@@ -25,6 +25,7 @@ defmodule Ecto.ShortUUID.BuilderTest do
       {:error, "Invalid UUID format"}
     end
 
+    @impl true
     def encode!(<<_::128>> = uuid) do
       "mock-" <> Base.encode16(uuid, case: :lower)
     end
@@ -37,6 +38,7 @@ defmodule Ecto.ShortUUID.BuilderTest do
     end
 
     # Update decode to return string UUIDs instead of binary UUIDs
+    @impl true
     def decode("mock-" <> hex) do
       case Base.decode16(hex, case: :mixed) do
         {:ok, binary} when byte_size(binary) == 16 ->
@@ -57,6 +59,7 @@ defmodule Ecto.ShortUUID.BuilderTest do
       {:error, "Not a valid uuid format"}
     end
 
+    @impl true
     def decode!(shortuuid) do
       case decode(shortuuid) do
         {:ok, uuid_string} -> uuid_string

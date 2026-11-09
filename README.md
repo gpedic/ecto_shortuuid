@@ -63,11 +63,13 @@ end
 | ---------- | ------------------ |
 | Elixir     | `~> 1.15`          |
 | Ecto       | `~> 3.0`           |
-| shortuuid  | `~> 3.0` or `~> 4.0` (custom alphabets need `~> 4.0`, `ShortUUID.Behaviour` needs `~> 4.1`) |
+| shortuuid  | `~> 4.1`           |
 
-Ecto 2.x and shortuuid 2.x are no longer supported. shortuuid 3.x and 4.x
-produce identical encodings for the default alphabet, so switching between
-them does not change any stored or exposed IDs.
+Ecto 2.x and shortuuid 2.x/3.x are no longer supported. shortuuid 4.1 is
+required so that `ShortUUID.Builder` (custom alphabets) and
+`ShortUUID.Behaviour` are always available. shortuuid 3.x and 4.x produce
+identical encodings for the default alphabet, so upgrading from 3.x does not
+change any stored or exposed IDs.
 
 ## Example project
 
@@ -166,19 +168,7 @@ Read more about config options in the [Ecto docs - Repo Configuration](https://h
 
 ## Custom Alphabets
 
-Starting with version `0.4.0` Ecto.ShortUUID supports custom alphabets through two approaches.
-> Note: Custom alphabets are available in [ShortUUID](https://github.com/gpedic/ex_shortuuid) starting from version 4.0.0, and the ShortUUID.Behaviour is available since version 4.1.0.
-
-To ensure you have the right version of ShortUUID for custom alphabets, you can explicitly specify it in your dependencies:
-
-```elixir
-def deps do
-  [
-    {:ecto_shortuuid, "~> 0.4.1"},
-    {:shortuuid, "~> 4.1"}  # Explicitly specify for custom alphabets/behaviors
-  ]
-end
-```
+Ecto.ShortUUID supports custom alphabets through two approaches.
 
 ### Approach 1: Using ShortUUID.Builder
 
@@ -225,7 +215,7 @@ end
 
 ### Approach 2: Implementing ShortUUID.Behaviour
 
-For more control, you can implement the `ShortUUID.Behaviour` (available since [ShortUUID](https://github.com/gpedic/ex_shortuuid) v4.1.0) directly:
+For more control, you can implement the [`ShortUUID.Behaviour`](https://hexdocs.pm/shortuuid/ShortUUID.Behaviour.html) directly:
 
 ```elixir
 defmodule MyApp.CustomShortUUID do
