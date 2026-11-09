@@ -33,6 +33,20 @@ defmodule Ecto.ShortUUID.CustomAlphabetTest do
     assert Ecto.UUID.dump(@test_uuid) === type.dump(short)
   end
 
+  test "invalid UTF-8 is rejected instead of raising" do
+    # shortuuid < 4.2 raised ArgumentError for these. Padded to 22 bytes so
+    # the default ShortUUID length check doesn't short-circuit them.
+    inputs =
+      for prefix <- ["😀" <> <<0xFF>>, <<0xFF, 0xFE>>, "abc" <> <<0x80>>] do
+        prefix <> String.duplicate("a", 22 - byte_size(prefix))
+      end
+
+    for type <- [Ecto.ShortUUID, Base58Type, Base62Type], input <- inputs do
+      assert type.cast(input) == :error
+      assert type.dump(input) == :error
+    end
+  end
+
   for type <- [Base58Type, Base62Type] do
     test "#{inspect(type)} round trips random UUIDs" do
       type = unquote(type)
