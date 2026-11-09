@@ -54,19 +54,28 @@ defmodule Ecto.ShortUUID.MixProject do
 
   # Run "mix help compile.app" to learn about applications.
   def application do
+    []
+  end
+
+  def cli do
     [
-      extra_applications: [:logger]
+      preferred_envs: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.github": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ex_doc, "~> 0.25", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.3", only: [:dev], runtime: false},
+      {:ex_doc, "~> 0.40", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.4", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.16.1", only: :test, runtime: false},
-      {:benchfella, "~> 0.3.5", only: [:dev, :test]},
+      {:excoveralls, "~> 0.18", only: :test, runtime: false},
+      {:benchee, "~> 1.5", only: :dev, runtime: false},
       {:shortuuid, "~> 4.0 or ~> 3.0 or ~> 2.1"},
       {:ecto, "~> 2.2 or ~> 3.0"}
     ]
