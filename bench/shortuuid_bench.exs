@@ -1,6 +1,6 @@
 # Run with: mix run bench/shortuuid_bench.exs
 uuid = "0160280f-1d70-1568-b097-7bdca2801de3"
-shortuuid = "ggAZXFogjWbVWpbbQ4DxF2"
+shortuuid = "2FxD4QbbpWVbWjgoFXZAgg"
 other_shortuuid = "9VprZJ9U7Tgg2PJ8BfTAek"
 binary = <<1, 96, 40, 15, 29, 112, 21, 104, 176, 151, 123, 220, 162, 128, 29, 227>>
 
