@@ -110,9 +110,9 @@ defmodule Ecto.ShortUUID.Builder do
       def dump(value), do: unquote(__MODULE__).dump(@encoder, value)
 
       @doc """
-      Ecto v3 callback
       Dictates how the type should be treated inside embeds.
-      https://hexdocs.pm/ecto/Ecto.Type.html#c:embed_as/1
+
+      See `c:Ecto.Type.embed_as/1`.
       """
       @impl true
       @spec embed_as(term()) :: :self
