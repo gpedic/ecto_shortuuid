@@ -4,7 +4,7 @@ defmodule Ecto.ShortUUID.BuilderTest do
   # Mock implementation of ShortUUID with custom format
   defmodule MockShortUUID do
     # Deliberately no `@behaviour ShortUUID.Behaviour`: it only exists in
-    # shortuuid >= 4.1 and the suite also runs against older releases.
+    # shortuuid >= 4.1 and the suite also runs against shortuuid 3.x.
 
     # Handle binary UUIDs
     def encode(<<_::128>> = uuid) do

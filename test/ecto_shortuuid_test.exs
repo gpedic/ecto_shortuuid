@@ -1,11 +1,8 @@
 defmodule Ecto.ShortUUIDTest do
   use ExUnit.Case, async: true
-  # The examples use the shortuuid >= 3.0 encoding, see test_helper.exs.
-  doctest Ecto.ShortUUID, tags: [doc_examples: true]
+  doctest Ecto.ShortUUID
 
-  import Ecto.ShortUUID.TestEncoding, only: [shortuuid: 1]
-
-  @test_shortuuid shortuuid("9VprZJ9U7Tgg2PJ8BfTAek")
+  @test_shortuuid "9VprZJ9U7Tgg2PJ8BfTAek"
   @test_uuid "2a162ee5-02f4-4701-9e87-72762cbce5e2"
   @test_uuid_upper "2A162EE5-02F4-4701-9E87-72762CBCE5E2"
   @test_uuid_binary <<0x2A, 0x16, 0x2E, 0xE5, 0x02, 0xF4, 0x47, 0x01, 0x9E, 0x87, 0x72, 0x76,
@@ -41,11 +38,11 @@ defmodule Ecto.ShortUUIDTest do
 
     test "casts UUIDs of any version" do
       # v1 (time-based)
-      assert {:ok, shortuuid("dtNtDHxdgow74P9DrPcDsM")} ===
+      assert {:ok, "dtNtDHxdgow74P9DrPcDsM"} ===
                Ecto.ShortUUID.cast("c9aec822-6d99-11ee-b962-0242ac120002")
 
       # v4 (random)
-      assert {:ok, shortuuid("a6ckmZcnop4qRVD8QVUVJt")} ===
+      assert {:ok, "a6ckmZcnop4qRVD8QVUVJt"} ===
                Ecto.ShortUUID.cast("b44f3c49-0403-4dcd-bd5f-e22ea6d48a4f")
     end
 
@@ -185,8 +182,7 @@ defmodule Ecto.ShortUUIDTest do
     test "boundary values" do
       for {uuid, shortuuid, binary} <- [
             {"00000000-0000-0000-0000-000000000000", "2222222222222222222222", <<0::128>>},
-            {"ffffffff-ffff-ffff-ffff-ffffffffffff", shortuuid("oZEq7ovRbLq6UnGMPwc8B5"),
-             <<-1::signed-128>>}
+            {"ffffffff-ffff-ffff-ffff-ffffffffffff", "oZEq7ovRbLq6UnGMPwc8B5", <<-1::signed-128>>}
           ] do
         assert {:ok, shortuuid} === Ecto.ShortUUID.cast(uuid)
         assert {:ok, binary} === Ecto.ShortUUID.dump(shortuuid)
@@ -238,9 +234,6 @@ defmodule Ecto.ShortUUIDTest do
   end
 
   describe "embedded_dump/3 and embedded_load/3" do
-    # Ecto.Type.embedded_dump/3 and embedded_load/3 only exist in Ecto 3.
-    @describetag :embedded_type
-
     test "embed the ShortUUID string as is" do
       assert {:ok, @test_shortuuid} ===
                Ecto.Type.embedded_dump(Ecto.ShortUUID, @test_shortuuid, :json)
