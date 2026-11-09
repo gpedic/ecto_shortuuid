@@ -62,7 +62,7 @@ end
 | Dependency | Supported versions |
 | ---------- | ------------------ |
 | Elixir     | `~> 1.15`          |
-| Ecto       | `~> 3.0`           |
+| Ecto       | `~> 3.10`          |
 | shortuuid  | `~> 4.1`           |
 
 Ecto 2.x and shortuuid 2.x/3.x are no longer supported. shortuuid 4.1 is

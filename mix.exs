@@ -114,7 +114,16 @@ defmodule Ecto.ShortUUID.MixProject do
       {:sobelow, "~> 0.18", only: :dev, runtime: false},
       {:mix_audit, "~> 2.1", only: :dev, runtime: false},
       {:shortuuid, "~> 4.1"},
-      {:ecto, "~> 3.0"}
+      {:ecto, ecto_requirement()}
     ]
+  end
+
+  # CI sets ECTO_VERSION (e.g. "== 3.10.0") to run the suite against the
+  # oldest supported Ecto release instead of the locked one.
+  defp ecto_requirement do
+    case System.get_env("ECTO_VERSION") do
+      version when version in [nil, ""] -> "~> 3.10"
+      version -> version
+    end
   end
 end
