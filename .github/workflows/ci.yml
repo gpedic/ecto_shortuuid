@@ -23,14 +23,7 @@ jobs:
           - elixir: "1.20"
             otp: "29"
             coverage: true
-          # Older supported shortuuid releases (2.x and 3.x), see
-          # shortuuid_requirement/0 in mix.exs
-          - elixir: "1.15"
-            otp: "26"
-            shortuuid: "== 2.1.2"
-          - elixir: "1.20"
-            otp: "29"
-            shortuuid: "== 2.1.2"
+          # Oldest supported shortuuid release (3.x), see shortuuid_requirement/0 in mix.exs
           - elixir: "1.15"
             otp: "26"
             shortuuid: "== 3.0.0"

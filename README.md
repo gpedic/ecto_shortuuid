@@ -57,6 +57,18 @@ def deps do
 end
 ```
 
+### Compatibility
+
+| Dependency | Supported versions |
+| ---------- | ------------------ |
+| Elixir     | `~> 1.15`          |
+| Ecto       | `~> 3.0`           |
+| shortuuid  | `~> 3.0` or `~> 4.0` (custom alphabets need `~> 4.0`, `ShortUUID.Behaviour` needs `~> 4.1`) |
+
+Ecto 2.x and shortuuid 2.x are no longer supported. shortuuid 3.x and 4.x
+produce identical encodings for the default alphabet, so switching between
+them does not change any stored or exposed IDs.
+
 ## Example project
 
 You can check out the example project [ecto_shortuuid_example](https://github.com/gpedic/ecto_shortuuid_example) with defined config, schemas and seeds to quickly try out `ecto_shortuuid` for yourself.

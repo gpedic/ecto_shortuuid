@@ -145,16 +145,6 @@ defmodule Ecto.ShortUUID.Builder do
   # every type module, and so the compiler does not type-check them against one
   # specific encoder.
 
-  # `__STACKTRACE__` only exists since Elixir 1.7 and `System.stacktrace/0` is
-  # deprecated since then.
-  defmacrop current_stacktrace do
-    if Version.match?(System.version(), ">= 1.7.0") do
-      quote do: __STACKTRACE__
-    else
-      quote do: System.stacktrace()
-    end
-  end
-
   @doc false
   def cast(encoder, <<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = uuid) do
     with {:ok, casted} <- Ecto.UUID.cast(uuid) do
@@ -228,7 +218,7 @@ defmodule Ecto.ShortUUID.Builder do
       if error.module == encoder and error.function == :decode and error.arity == 1 do
         :error
       else
-        reraise error, current_stacktrace()
+        reraise error, __STACKTRACE__
       end
   end
 

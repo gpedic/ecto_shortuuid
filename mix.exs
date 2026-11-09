@@ -10,7 +10,7 @@ defmodule Ecto.ShortUUID.MixProject do
     [
       app: @app,
       version: @version,
-      elixir: "~> 1.5",
+      elixir: "~> 1.15",
       test_coverage: [tool: ExCoveralls],
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -113,15 +113,15 @@ defmodule Ecto.ShortUUID.MixProject do
       {:sobelow, "~> 0.18", only: :dev, runtime: false},
       {:mix_audit, "~> 2.1", only: :dev, runtime: false},
       {:shortuuid, shortuuid_requirement()},
-      {:ecto, "~> 2.2 or ~> 3.0"}
+      {:ecto, "~> 3.0"}
     ]
   end
 
-  # CI sets SHORTUUID_VERSION (e.g. "== 2.1.2") to run the suite against an
-  # older supported shortuuid release instead of the locked one.
+  # CI sets SHORTUUID_VERSION (e.g. "== 3.0.0") to run the suite against the
+  # oldest supported shortuuid release instead of the locked one.
   defp shortuuid_requirement do
     case System.get_env("SHORTUUID_VERSION") do
-      version when version in [nil, ""] -> "~> 4.0 or ~> 3.0 or ~> 2.1"
+      version when version in [nil, ""] -> "~> 4.0 or ~> 3.0"
       version -> version
     end
   end
