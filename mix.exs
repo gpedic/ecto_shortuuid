@@ -14,6 +14,11 @@ defmodule Ecto.ShortUUID.MixProject do
       test_coverage: [tool: ExCoveralls],
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      aliases: aliases(),
+      dialyzer: [
+        plt_local_path: "priv/plts",
+        plt_core_path: "priv/plts"
+      ],
       docs: docs(),
       description: description(),
       package: package()
@@ -68,6 +73,35 @@ defmodule Ecto.ShortUUID.MixProject do
     ]
   end
 
+  # `mix ci` runs every check CI runs. The analysis tools are dev-only (some
+  # of their deps need newer Elixir versions than this library supports), so
+  # the alias runs in dev and starts the test suite in a separate test-env Mix.
+  defp aliases do
+    [
+      ci: [
+        "deps.unlock --check-unused",
+        "hex.audit",
+        "deps.audit",
+        "format --check-formatted",
+        "compile --warnings-as-errors --force",
+        "credo --strict",
+        "sobelow --exit low --private",
+        "dialyzer",
+        &test_in_test_env/1
+      ]
+    ]
+  end
+
+  defp test_in_test_env(_args) do
+    status =
+      Mix.shell().cmd(
+        "mix do compile --warnings-as-errors --force + test --warnings-as-errors",
+        env: [{"MIX_ENV", "test"}]
+      )
+
+    if status != 0, do: Mix.raise("mix test failed")
+  end
+
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
@@ -76,8 +110,19 @@ defmodule Ecto.ShortUUID.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18", only: :test, runtime: false},
       {:benchee, "~> 1.5", only: :dev, runtime: false},
-      {:shortuuid, "~> 4.0 or ~> 3.0 or ~> 2.1"},
+      {:sobelow, "~> 0.18", only: :dev, runtime: false},
+      {:mix_audit, "~> 2.1", only: :dev, runtime: false},
+      {:shortuuid, shortuuid_requirement()},
       {:ecto, "~> 2.2 or ~> 3.0"}
     ]
+  end
+
+  # CI sets SHORTUUID_VERSION (e.g. "== 2.1.2") to run the suite against an
+  # older supported shortuuid release instead of the locked one.
+  defp shortuuid_requirement do
+    case System.get_env("SHORTUUID_VERSION") do
+      version when version in [nil, ""] -> "~> 4.0 or ~> 3.0 or ~> 2.1"
+      version -> version
+    end
   end
 end
