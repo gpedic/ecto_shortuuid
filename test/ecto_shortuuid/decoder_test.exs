@@ -92,7 +92,7 @@ defmodule Ecto.ShortUUID.DecoderTest do
     test "valid input still works" do
       assert {:ok, "custom-" <> @test_uuid} == PartialType.cast(@test_uuid)
       assert {:ok, "custom-" <> @test_uuid} == PartialType.cast("custom-" <> @test_uuid)
-      assert {:ok, _} = PartialType.dump("custom-" <> @test_uuid)
+      assert Ecto.UUID.dump(@test_uuid) == PartialType.dump("custom-" <> @test_uuid)
     end
   end
 

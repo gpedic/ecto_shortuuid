@@ -1,141 +1,165 @@
 defmodule Ecto.ShortUUIDTest do
   use ExUnit.Case, async: true
-  doctest Ecto.ShortUUID
+  # The examples use the shortuuid >= 3.0 encoding, see test_helper.exs.
+  doctest Ecto.ShortUUID, tags: [doc_examples: true]
 
-  @test_shortuuid "9VprZJ9U7Tgg2PJ8BfTAek"
+  import Ecto.ShortUUID.TestEncoding, only: [shortuuid: 1]
+
+  @test_shortuuid shortuuid("9VprZJ9U7Tgg2PJ8BfTAek")
   @test_uuid "2a162ee5-02f4-4701-9e87-72762cbce5e2"
+  @test_uuid_upper "2A162EE5-02F4-4701-9E87-72762CBCE5E2"
   @test_uuid_binary <<0x2A, 0x16, 0x2E, 0xE5, 0x02, 0xF4, 0x47, 0x01, 0x9E, 0x87, 0x72, 0x76,
                       0x2C, 0xBC, 0xE5, 0xE2>>
 
+  # Value of 22 characters from the alphabet that exceeds 128 bits
+  @overflow_shortuuid String.duplicate("z", 22)
+
+  # Values none of cast/1, load/1 and dump/1 accept
+  @invalid ["", "invalid", nil, 0, 1, <<0>>, false, true, @overflow_shortuuid]
+
+  defmodule Schema do
+    use Ecto.Schema
+
+    @primary_key {:id, Ecto.ShortUUID, autogenerate: true}
+    embedded_schema do
+      field(:ids, {:array, Ecto.ShortUUID})
+    end
+  end
+
   describe "cast/1" do
-    test "can cast shortuuids" do
-      assert {:ok, _} = Ecto.ShortUUID.cast(@test_shortuuid)
+    test "casts ShortUUIDs to themselves" do
+      assert {:ok, @test_shortuuid} === Ecto.ShortUUID.cast(@test_shortuuid)
     end
 
-    test "can cast UUIDs" do
-      assert {:ok, _} = Ecto.ShortUUID.cast(@test_uuid)
+    test "casts UUIDs to ShortUUIDs" do
+      assert {:ok, @test_shortuuid} === Ecto.ShortUUID.cast(@test_uuid)
+      assert {:ok, @test_shortuuid} === Ecto.ShortUUID.cast(@test_uuid_upper)
+
+      assert {:ok, @test_shortuuid} ===
+               Ecto.ShortUUID.cast("2A162ee5-02F4-4701-9e87-72762cBcE5e2")
     end
 
-    test "can't cast invalid UUIDs" do
+    test "casts UUIDs of any version" do
+      # v1 (time-based)
+      assert {:ok, shortuuid("dtNtDHxdgow74P9DrPcDsM")} ===
+               Ecto.ShortUUID.cast("c9aec822-6d99-11ee-b962-0242ac120002")
+
+      # v4 (random)
+      assert {:ok, shortuuid("a6ckmZcnop4qRVD8QVUVJt")} ===
+               Ecto.ShortUUID.cast("b44f3c49-0403-4dcd-bd5f-e22ea6d48a4f")
+    end
+
+    test "rejects invalid UUIDs" do
       assert :error === Ecto.ShortUUID.cast("fee080d9-3ea4-408b-9c2")
       assert :error === Ecto.ShortUUID.cast("not a uuid")
-    end
-
-    test "can't cast invalid formatted UUIDs of correct length" do
+      assert :error === Ecto.ShortUUID.cast("2a162ee5-02f4-4701-9e87-72762cbce5eZ")
+      # Wrong delimiters
       assert :error === Ecto.ShortUUID.cast("2a162ee5_02f4_4701_9e87_72762cbce5e2")
+      # Missing sections
+      assert :error === Ecto.ShortUUID.cast("c9aec822-6d99-11ee-b962")
+      # Too many sections
+      assert :error === Ecto.ShortUUID.cast("c9aec822-6d99-11ee-b962-0242ac120002-extra")
     end
 
-    test "can't cast other types" do
-      assert :error === Ecto.ShortUUID.cast("")
-      assert :error === Ecto.ShortUUID.cast("invalid")
-      assert :error === Ecto.ShortUUID.cast(nil)
-      assert :error === Ecto.ShortUUID.cast(0)
-      assert :error === Ecto.ShortUUID.cast(1)
-      assert :error === Ecto.ShortUUID.cast(<<0>>)
-      assert :error === Ecto.ShortUUID.cast(false)
-      assert :error === Ecto.ShortUUID.cast(true)
+    test "rejects malformed ShortUUIDs" do
+      # Too short
+      assert :error === Ecto.ShortUUID.cast("9VprZJ")
+      # Too long
+      assert :error === Ecto.ShortUUID.cast(@test_shortuuid <> "extra")
+      # Characters outside the alphabet
+      assert :error === Ecto.ShortUUID.cast("9VprZJ9U7T/g2PJ8BfTAek")
+      assert :error === Ecto.ShortUUID.cast("Invalid$ShortUUID")
+      # Value larger than 128 bits
+      assert :error === Ecto.ShortUUID.cast(@overflow_shortuuid)
+    end
+
+    test "rejects raw 16-byte binaries" do
+      assert :error === Ecto.ShortUUID.cast(@test_uuid_binary)
+      assert :error === Ecto.ShortUUID.cast(<<0::128>>)
+    end
+
+    test "rejects other values" do
+      for value <- @invalid do
+        assert :error === Ecto.ShortUUID.cast(value), "expected cast(#{inspect(value)}) to fail"
+      end
     end
   end
 
   describe "load/1" do
-    test "loads binary UUID" do
-      assert {:ok, _} = Ecto.ShortUUID.load(@test_uuid_binary)
+    test "loads binary UUIDs as ShortUUIDs" do
+      assert {:ok, @test_shortuuid} === Ecto.ShortUUID.load(@test_uuid_binary)
     end
 
-    test "loading a string uuid fails" do
+    test "raises when loading a string UUID" do
       assert_raise ArgumentError, fn ->
         Ecto.ShortUUID.load(@test_uuid)
       end
     end
 
-    test "fails for these values" do
-      assert :error === Ecto.ShortUUID.load("")
-      assert :error === Ecto.ShortUUID.load("invalid")
-      assert :error === Ecto.ShortUUID.load(nil)
-      assert :error === Ecto.ShortUUID.load(0)
-      assert :error === Ecto.ShortUUID.load(1)
-      assert :error === Ecto.ShortUUID.load(<<0>>)
-      assert :error === Ecto.ShortUUID.load(false)
-      assert :error === Ecto.ShortUUID.load(true)
+    test "rejects binaries that aren't 128 bits" do
+      assert :error === Ecto.ShortUUID.load(<<0::120>>)
+      assert :error === Ecto.ShortUUID.load(<<0::136>>)
     end
 
-    test "fails if binary > 128bit" do
-      assert :error === Ecto.ShortUUID.load(<<1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>)
-    end
-
-    test "fails if binary < 128bit" do
-      assert :error === Ecto.ShortUUID.load(<<1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>)
+    test "rejects other values" do
+      for value <- @invalid do
+        assert :error === Ecto.ShortUUID.load(value), "expected load(#{inspect(value)}) to fail"
+      end
     end
   end
 
   describe "dump/1" do
-    test "can dump shortuuid" do
-      assert {:ok, _} = Ecto.ShortUUID.dump(@test_shortuuid)
+    test "dumps ShortUUIDs" do
+      assert {:ok, @test_uuid_binary} === Ecto.ShortUUID.dump(@test_shortuuid)
     end
 
-    test "can dump UUID" do
-      assert {:ok, @test_uuid_binary} = Ecto.ShortUUID.dump(@test_uuid)
+    test "dumps UUIDs in any case" do
+      assert {:ok, @test_uuid_binary} === Ecto.ShortUUID.dump(@test_uuid)
+      assert {:ok, @test_uuid_binary} === Ecto.ShortUUID.dump(@test_uuid_upper)
     end
 
-    test "fails to dump binary" do
+    test "produces the same binary as Ecto.UUID.dump/1" do
+      for uuid <- [@test_uuid, @test_uuid_upper, Ecto.UUID.generate()] do
+        {:ok, shortuuid} = Ecto.ShortUUID.cast(uuid)
+        assert Ecto.UUID.dump(uuid) === Ecto.ShortUUID.dump(uuid)
+        assert Ecto.UUID.dump(uuid) === Ecto.ShortUUID.dump(shortuuid)
+      end
+    end
+
+    test "rejects raw 16-byte binaries" do
       assert :error === Ecto.ShortUUID.dump(@test_uuid_binary)
     end
 
-    test "fails to dump invalid formatted UUID of correct length" do
+    test "rejects invalid UUIDs" do
       assert :error === Ecto.ShortUUID.dump("2a162ee5_02f4_4701_9e87_72762cbce5e2")
     end
 
-    test "fails to dump these" do
-      assert :error === Ecto.ShortUUID.dump("")
-      assert :error === Ecto.ShortUUID.dump("invalid")
-      assert :error === Ecto.ShortUUID.dump(nil)
-      assert :error === Ecto.ShortUUID.dump(0)
-      assert :error === Ecto.ShortUUID.dump(1)
-      assert :error === Ecto.ShortUUID.dump(<<0>>)
-      assert :error === Ecto.ShortUUID.dump(false)
-      assert :error === Ecto.ShortUUID.dump(true)
+    test "rejects other values" do
+      for value <- @invalid do
+        assert :error === Ecto.ShortUUID.dump(value), "expected dump(#{inspect(value)}) to fail"
+      end
     end
   end
 
   describe "embed_as/1" do
-    test "returns default :self value" do
-      uuid = Ecto.ShortUUID.autogenerate()
-      assert :self === Ecto.ShortUUID.embed_as(uuid)
+    test "returns :self" do
+      assert :self === Ecto.ShortUUID.embed_as(:json)
       assert :self === Ecto.ShortUUID.embed_as(:any_value)
     end
   end
 
-  describe "equal?/2" do
-    test "returns true for equivalent uuids" do
-      uuid = Ecto.ShortUUID.autogenerate()
-      assert Ecto.ShortUUID.equal?(uuid, uuid)
-    end
-
-    test "returns false for different uuids" do
-      uuid1 = Ecto.ShortUUID.autogenerate()
-      uuid2 = Ecto.ShortUUID.autogenerate()
-
-      refute Ecto.ShortUUID.equal?(uuid1, uuid2)
-    end
-
-    test "returns false for non-UUID inputs" do
-      assert false === Ecto.ShortUUID.equal?(1, "1")
-    end
-  end
-
-  describe "generate/0" do
-    test "generates valid shortuuids" do
-      for _ <- 1..10 do
-        assert {:ok, _shortuuid} = Ecto.ShortUUID.generate() |> Ecto.ShortUUID.cast()
+  describe "generate/0 and autogenerate/0" do
+    test "generate valid 22 character ShortUUIDs" do
+      for fun <- [:generate, :autogenerate], _ <- 1..10 do
+        shortuuid = apply(Ecto.ShortUUID, fun, [])
+        assert <<_::176>> = shortuuid
+        assert {:ok, ^shortuuid} = Ecto.ShortUUID.cast(shortuuid)
       end
     end
-  end
 
-  describe "autogenerate/0" do
-    test "autogenerates valid shortuuids" do
-      for _ <- 1..10 do
-        assert <<_::176>> = Ecto.ShortUUID.autogenerate()
-      end
+    test "generate version 4 UUIDs" do
+      {:ok, binary} = Ecto.ShortUUID.dump(Ecto.ShortUUID.generate())
+      assert <<_::48, 4::4, _::12, 2::2, _::62>> = binary
     end
   end
 
@@ -145,143 +169,92 @@ defmodule Ecto.ShortUUIDTest do
     end
   end
 
-  describe "edge cases" do
-    test "handles malformed shortuuids correctly" do
-      # Too short shortuuid
-      assert :error == Ecto.ShortUUID.cast("9VprZJ")
-
-      # Shortuuid with invalid characters
-      assert :error == Ecto.ShortUUID.cast("9VprZJ9U7T/g2PJ8BfTAek")
-
-      # Empty string
-      assert :error == Ecto.ShortUUID.cast("")
+  describe "round trips" do
+    test "UUID -> ShortUUID -> binary -> UUID" do
+      {:ok, shortuuid} = Ecto.ShortUUID.cast(@test_uuid)
+      {:ok, binary} = Ecto.ShortUUID.dump(shortuuid)
+      assert {:ok, @test_uuid} === Ecto.UUID.load(binary)
     end
 
-    test "handles specific nil values" do
-      assert :error == Ecto.ShortUUID.cast(nil)
-      assert :error == Ecto.ShortUUID.load(nil)
-      assert :error == Ecto.ShortUUID.dump(nil)
+    test "generated ShortUUID -> binary -> ShortUUID" do
+      shortuuid = Ecto.ShortUUID.autogenerate()
+      {:ok, binary} = Ecto.ShortUUID.dump(shortuuid)
+      assert {:ok, shortuuid} === Ecto.ShortUUID.load(binary)
     end
 
-    test "supports different UUID versions" do
-      # UUID v1 (time-based)
-      uuid_v1 = "c9aec822-6d99-11ee-b962-0242ac120002"
-      assert {:ok, _} = Ecto.ShortUUID.cast(uuid_v1)
-
-      # UUID v4 (random)
-      uuid_v4 = "b44f3c49-0403-4dcd-bd5f-e22ea6d48a4f"
-      assert {:ok, _} = Ecto.ShortUUID.cast(uuid_v4)
-
-      # Both should result in valid shortuuids
-      {:ok, shortuuid_v1} = Ecto.ShortUUID.cast(uuid_v1)
-      {:ok, shortuuid_v4} = Ecto.ShortUUID.cast(uuid_v4)
-
-      assert {:ok, _} = Ecto.ShortUUID.dump(shortuuid_v1)
-      assert {:ok, _} = Ecto.ShortUUID.dump(shortuuid_v4)
-    end
-
-    test "handles incomplete UUID formats" do
-      # Missing sections
-      assert :error == Ecto.ShortUUID.cast("c9aec822-6d99-11ee-b962")
-
-      # Too many sections
-      assert :error == Ecto.ShortUUID.cast("c9aec822-6d99-11ee-b962-0242ac120002-extra")
-
-      # Wrong delimiters
-      assert :error == Ecto.ShortUUID.cast("c9aec822_6d99_11ee_b962_0242ac120002")
+    test "boundary values" do
+      for {uuid, shortuuid, binary} <- [
+            {"00000000-0000-0000-0000-000000000000", "2222222222222222222222", <<0::128>>},
+            {"ffffffff-ffff-ffff-ffff-ffffffffffff", shortuuid("oZEq7ovRbLq6UnGMPwc8B5"),
+             <<-1::signed-128>>}
+          ] do
+        assert {:ok, shortuuid} === Ecto.ShortUUID.cast(uuid)
+        assert {:ok, binary} === Ecto.ShortUUID.dump(shortuuid)
+        assert {:ok, shortuuid} === Ecto.ShortUUID.load(binary)
+      end
     end
   end
 
-  describe "round trip conversions" do
-    test "standard UUID can be converted to ShortUUID and back" do
-      # Start with a standard UUID
-      original_uuid = "2a162ee5-02f4-4701-9e87-72762cbce5e2"
-
-      # Convert to ShortUUID
-      {:ok, short_uuid} = Ecto.ShortUUID.cast(original_uuid)
-
-      # Convert back to binary and then to standard UUID
-      {:ok, binary_uuid} = Ecto.ShortUUID.dump(short_uuid)
-      {:ok, converted_uuid} = Ecto.UUID.load(binary_uuid)
-
-      # Should get the original UUID back
-      assert original_uuid == converted_uuid
+  describe "Ecto.Changeset.cast/4" do
+    test "accepts ShortUUIDs and UUIDs, storing the ShortUUID" do
+      for value <- [@test_shortuuid, @test_uuid, @test_uuid_upper] do
+        changeset = Ecto.Changeset.cast(%Schema{}, %{"id" => value}, [:id])
+        assert changeset.valid?
+        assert changeset.changes == %{id: @test_shortuuid}
+      end
     end
 
-    test "generated ShortUUID can be dumped and loaded" do
-      # Generate a new ShortUUID
-      short_uuid = Ecto.ShortUUID.autogenerate()
-
-      # Dump to binary and load back
-      {:ok, binary_uuid} = Ecto.ShortUUID.dump(short_uuid)
-      {:ok, loaded_short_uuid} = Ecto.ShortUUID.load(binary_uuid)
-
-      # Should get back the same ShortUUID
-      assert short_uuid == loaded_short_uuid
+    test "reports invalid values as invalid" do
+      for value <- ["invalid", @overflow_shortuuid, "2a162ee5-02f4-4701-9e87-72762cbce5eZ", 1] do
+        changeset = Ecto.Changeset.cast(%Schema{}, %{"id" => value}, [:id])
+        refute changeset.valid?
+        assert {"is invalid", [type: Ecto.ShortUUID, validation: :cast]} = changeset.errors[:id]
+      end
     end
   end
 
-  describe "boundary cases" do
-    test "handles all zeros UUID" do
-      all_zeros_uuid = "00000000-0000-0000-0000-000000000000"
-      {:ok, short_uuid} = Ecto.ShortUUID.cast(all_zeros_uuid)
+  describe "{:array, Ecto.ShortUUID}" do
+    @array_type {:array, Ecto.ShortUUID}
 
-      # Should be able to dump and decode correctly
-      {:ok, binary} = Ecto.ShortUUID.dump(short_uuid)
-      assert <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>> == binary
+    test "casts mixed UUIDs and ShortUUIDs" do
+      assert {:ok, [@test_shortuuid, @test_shortuuid]} ===
+               Ecto.Type.cast(@array_type, [@test_uuid, @test_shortuuid])
+
+      assert :error === Ecto.Type.cast(@array_type, [@test_uuid, "invalid"])
     end
 
-    test "handles all ones UUID" do
-      all_ones_uuid = "ffffffff-ffff-ffff-ffff-ffffffffffff"
-      {:ok, short_uuid} = Ecto.ShortUUID.cast(all_ones_uuid)
-
-      # Should be able to dump and decode correctly
-      {:ok, binary} = Ecto.ShortUUID.dump(short_uuid)
-
-      assert <<255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255>> ==
-               binary
-    end
-  end
-
-  describe "compatibility with Ecto.UUID" do
-    test "ShortUUID.dump/1 produces the same binary as UUID.dump/1" do
-      # Start with standard UUID
-      uuid_string = "2a162ee5-02f4-4701-9e87-72762cbce5e2"
-
-      # Dump via both methods
-      {:ok, binary_from_shortuuid} = Ecto.ShortUUID.dump(uuid_string)
-      {:ok, binary_from_uuid} = Ecto.UUID.dump(uuid_string)
-
-      # Both should produce identical binary representation
-      assert binary_from_shortuuid == binary_from_uuid
+    test "dumps and loads" do
+      assert {:ok, [@test_uuid_binary]} === Ecto.Type.dump(@array_type, [@test_shortuuid])
+      assert {:ok, [@test_shortuuid]} === Ecto.Type.load(@array_type, [@test_uuid_binary])
     end
 
-    test "ShortUUID.cast/1 and load/1 work with various UUID formats" do
-      # Mixed case UUID should be accepted
-      mixed_case_uuid = "2A162ee5-02F4-4701-9e87-72762cBcE5e2"
-      assert {:ok, _} = Ecto.ShortUUID.cast(mixed_case_uuid)
+    test "works in changesets" do
+      changeset = Ecto.Changeset.cast(%Schema{}, %{"ids" => [@test_uuid]}, [:ids])
+      assert changeset.changes == %{ids: [@test_shortuuid]}
 
-      # Binary from mixed case UUID should load correctly
-      {:ok, binary} = Ecto.UUID.dump(mixed_case_uuid)
-      assert {:ok, _} = Ecto.ShortUUID.load(binary)
+      changeset = Ecto.Changeset.cast(%Schema{}, %{"ids" => ["invalid"]}, [:ids])
+      assert {"is invalid", _} = changeset.errors[:ids]
     end
   end
 
-  describe "error handling" do
-    test "cast/1 with invalid ShortUUID format" do
-      # Too long ShortUUID
-      assert :error = Ecto.ShortUUID.cast(@test_shortuuid <> "extra")
+  describe "embedded_dump/3 and embedded_load/3" do
+    # Ecto.Type.embedded_dump/3 and embedded_load/3 only exist in Ecto 3.
+    @describetag :embedded_type
 
-      # ShortUUID with special chars that shouldn't be in alphabet
-      assert :error = Ecto.ShortUUID.cast("Invalid$ShortUUID")
+    test "embed the ShortUUID string as is" do
+      assert {:ok, @test_shortuuid} ===
+               Ecto.Type.embedded_dump(Ecto.ShortUUID, @test_shortuuid, :json)
+
+      assert {:ok, @test_shortuuid} ===
+               Ecto.Type.embedded_load(Ecto.ShortUUID, @test_shortuuid, :json)
     end
 
-    test "load/1 with binary that looks like UUID but has wrong size" do
-      # 15-byte binary instead of 16
-      assert :error = Ecto.ShortUUID.load(<<0::120>>)
+    test "load embedded UUIDs as ShortUUIDs" do
+      assert {:ok, @test_shortuuid} === Ecto.Type.embedded_load(Ecto.ShortUUID, @test_uuid, :json)
+    end
 
-      # 17-byte binary instead of 16
-      assert :error = Ecto.ShortUUID.load(<<0::136>>)
+    test "reject invalid embedded values" do
+      assert :error === Ecto.Type.embedded_load(Ecto.ShortUUID, "invalid", :json)
     end
   end
 end
