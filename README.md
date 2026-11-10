@@ -11,9 +11,9 @@ Ecto.ShortUUID is a custom [Ecto.Type](https://hexdocs.pm/ecto/Ecto.Type.html#co
 
 ShortUUID is binary-compatible with UUID, so it can be stored in a `uuid` column in a database.
 
-ShortUUIDs can be used alongside `:binary_id` or as drop-in replacement for `:binary_id` primary and foreign keys, basically anywhere Ecto.UUID can be used.
+ShortUUIDs can be used alongside `:binary_id` or as a replacement for `:binary_id` primary and foreign keys, wherever Ecto.UUID is used for `uuid` columns.
 
-If you're already using `:binary_id`(`Ecto.UUID`) for primary keys it is possible to simply switch from `:binary_id` to using `Ecto.ShortUUID` and vice versa, neither the underlying data nor DB schema need to be changed.
+If you're already using `:binary_id` (`Ecto.UUID`) for primary keys, you can switch to `Ecto.ShortUUID` without changing the `uuid` columns or the data in them. Values stored as strings are a different matter, see [Where ShortUUIDs differ from UUIDs](#where-shortuuids-differ-from-uuids).
 
 For example, we can see that calls to `Ecto.ShortUUID.dump/1` and `Ecto.UUID.dump/1` will  return the same binary in the following case:
 
@@ -43,6 +43,25 @@ iex> Ecto.UUID.load(<<42, 22, 46, 229, 2, 244, 71, 1, 158, 135, 114, 118, 44, 18
 {:ok, "2a162ee5-02f4-4701-9e87-72762cbce5e2"}
 ```
 We can see that `Ecto.ShortUUID.dump/1` is backwards compatible and still accepts regular `UUIDs` and the value stored in the DB is exactly the same as when using the regular `:binary_id` type.
+
+### Where ShortUUIDs differ from UUIDs
+
+Only the `uuid` column stores the same 16 bytes. Everywhere else your
+application sees a different string:
+
+- Embedded schemas, and other values stored as JSON or maps, store the
+  ShortUUID string. Switching from `Ecto.UUID` to `Ecto.ShortUUID` still loads
+  them, because hyphenated UUIDs are accepted as input, but switching back
+  doesn't: `Ecto.UUID` rejects the stored ShortUUIDs, so they have to be
+  converted first.
+- The same applies to IDs kept outside the database: URLs, API responses,
+  caches, logs, other services. Old UUIDs keep working as input to
+  `Ecto.ShortUUID`, while ShortUUIDs given to code expecting UUIDs don't.
+- `Ecto.ShortUUID.cast/1` accepts hyphenated UUIDs (in any letter case) and
+  ShortUUIDs, but not raw 16-byte binaries, which `Ecto.UUID.cast/1` accepts.
+  Use `load/1` for those.
+- `autogenerate: [version: 7]` and `generate/1` options require Ecto 3.14 or
+  later, like `Ecto.UUID.generate/1` itself.
 
 ## Installation
 
@@ -293,12 +312,14 @@ exactly one spelling. Keep custom decoders that strict.
 `cast/1` only accepts the string `encode/1` produces for a UUID. For an
 encoder like this one it checks that by encoding the decoded UUID again and
 comparing the result, which rejects input a lax decoder would let through
-(say, a different letter case). `dump/1` only decodes. With shortuuid 4.3 or
-later, an encoder whose `decode/1` is strict can skip that extra `encode/1`
-call by declaring itself canonical (only the `:canonical` key is read):
+(say, a different letter case). `dump/1` only decodes. An encoder whose
+`decode/1` is strict can skip that extra `encode/1` call by declaring itself
+canonical with `__shortuuid__/0` (only the `:canonical` key is read). This
+works with any shortuuid version; from shortuuid 4.3 on, `__shortuuid__/0` is
+an optional `ShortUUID.Behaviour` callback, so you can also mark it
+`@impl true` there:
 
 ```elixir
-@impl true
 def __shortuuid__ do
   # alphabet, base and encoded_length describe the part after the prefix
   %{
@@ -313,11 +334,13 @@ end
 If `encode/1` doesn't return `{:ok, string}`, `cast/1` and `load/1` return
 `:error` and `generate/0` raises.
 
-The encoder is checked when the Ecto type is compiled: compilation fails with
-an `ArgumentError` if the `:encoder` option is missing, the module can't be
-compiled or loaded, or it doesn't export `encode/1` and `decode/1`. Define the
-encoder in its own file, above the Ecto type in the same file, or nested inside
-the Ecto type module.
+The encoder is checked when the Ecto type is compiled, whether it's given as a
+module name, a variable or a module attribute: compilation fails with an
+`ArgumentError` on unknown options, if `:encoder` is missing or not a module,
+if the module can't be compiled or loaded, or if it doesn't export `encode/1`
+and `decode/1`. Define the encoder in its own file, above the Ecto type in the
+same file, or nested inside the Ecto type module. The Ecto type is recompiled
+whenever its encoder changes.
 
 ## Development
 
