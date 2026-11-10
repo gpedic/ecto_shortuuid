@@ -395,14 +395,13 @@ defmodule Ecto.ShortUUID.Builder do
 
   defp generate_uuid([]), do: Ecto.UUID.generate()
 
-  # Ecto.UUID.generate/1 (and UUIDv7) exists since Ecto 3.14. It's checked at
-  # runtime, and called through apply/3, so older Ecto releases still compile
-  # this module without warnings.
-  defp generate_uuid(opts) when is_list(opts) do
-    if Code.ensure_loaded?(Ecto.UUID) and function_exported?(Ecto.UUID, :generate, 1) do
-      # credo:disable-for-next-line Credo.Check.Refactor.Apply
-      apply(Ecto.UUID, :generate, [opts])
-    else
+  # Ecto.UUID.generate/1 (and UUIDv7) exists since Ecto 3.14. Which clause is
+  # defined is decided when this module is compiled; Mix recompiles it when
+  # the Ecto dependency changes.
+  if Code.ensure_loaded?(Ecto.UUID) and function_exported?(Ecto.UUID, :generate, 1) do
+    defp generate_uuid(opts) when is_list(opts), do: Ecto.UUID.generate(opts)
+  else
+    defp generate_uuid(opts) when is_list(opts) do
       raise ArgumentError,
             "generating a UUID with options (#{inspect(opts)}) requires Ecto 3.14 or later"
     end
