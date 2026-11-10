@@ -191,7 +191,9 @@ defmodule Ecto.ShortUUID.Builder do
 
       This is called by Ecto when a record is inserted if the schema has
       `@primary_key {:id, CustomShortUUIDType, autogenerate: true}`, or with
-      the options given in `autogenerate: [version: 7]`.
+      the options given in `autogenerate: [version: 7]`. Ecto only passes
+      such options from 3.14 on; older releases ignore them and generate
+      no ID at all.
       """
       @impl true
       @spec autogenerate(keyword()) :: t()

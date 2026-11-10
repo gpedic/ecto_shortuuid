@@ -61,7 +61,7 @@ application sees a different string:
   ShortUUIDs, but not raw 16-byte binaries, which `Ecto.UUID.cast/1` accepts.
   Use `load/1` for those.
 - `autogenerate: [version: 7]` and `generate/1` options require Ecto 3.14 or
-  later, like `Ecto.UUID.generate/1` itself.
+  later, like `Ecto.UUID.generate/1` itself (see [UUIDv7](#uuidv7)).
 
 ## Installation
 
@@ -168,8 +168,12 @@ With Ecto 3.14 or later, `autogenerate` options are passed to
 
 `Ecto.ShortUUID.generate(version: 7)` does the same outside of schemas.
 ShortUUIDs sort in the same order as the UUIDs they encode, so these IDs stay
-time-ordered as strings too. With an older Ecto, options raise an
-`ArgumentError`.
+time-ordered as strings too.
+
+With an older Ecto, `Ecto.ShortUUID.generate(version: 7)` raises an
+`ArgumentError`, but `autogenerate: [version: 7]` fails silently: Ecto before
+3.14 ignores `autogenerate` options it doesn't recognise (for `Ecto.UUID` too),
+so no ID is generated and the primary key is `nil` on insert.
 
 
 ### Migration
