@@ -172,26 +172,32 @@ defmodule Ecto.ShortUUID.Builder do
       def equal?(_term1, _term2), do: false
 
       @doc """
-      Generates a ShortUUID string based on a version 4 (random) UUID.
+      Generates a ShortUUID string.
 
-      Raises a `RuntimeError` if the encoder fails to encode the generated UUID.
+      Without options, it encodes a version 4 (random) UUID. Options are
+      passed to `Ecto.UUID.generate/1`, e.g. `version: 7` for a time-ordered
+      UUIDv7. With the default `ShortUUID` encoder (or any fixed-length
+      encoding whose alphabet is in ascending byte order), ShortUUIDs sort in
+      the same order as the UUIDs they encode, so UUIDv7-based ones stay
+      time-ordered.
+
+      Options require Ecto 3.14 or later; with an older Ecto they raise an
+      `ArgumentError`. Also raises a `RuntimeError` if the encoder fails to
+      encode the generated UUID.
       """
-      @spec generate() :: t()
-      def generate, do: unquote(__MODULE__).generate(@encoder)
+      @spec generate(keyword()) :: t()
+      def generate(opts \\ []), do: unquote(__MODULE__).generate(@encoder, opts)
 
       @doc """
-      Generates a random ShortUUID string for use in primary keys.
-
-      Raises a `RuntimeError` if the encoder fails to encode the generated UUID.
+      Generates a ShortUUID string for use in primary keys, see `generate/1`.
 
       This is called by Ecto when a record is inserted if the schema has
-      `@primary_key {:id, CustomShortUUIDType, autogenerate: true}`.
+      `@primary_key {:id, CustomShortUUIDType, autogenerate: true}`, or with
+      the options given in `autogenerate: [version: 7]`.
       """
       @impl true
-      @spec autogenerate() :: t()
-      def autogenerate do
-        generate()
-      end
+      @spec autogenerate(keyword()) :: t()
+      def autogenerate(opts \\ []), do: generate(opts)
     end
   end
 
@@ -325,8 +331,8 @@ defmodule Ecto.ShortUUID.Builder do
   defp uuid_shaped?(_), do: false
 
   @doc false
-  def generate(encoder) do
-    uuid = Ecto.UUID.generate()
+  def generate(encoder, opts \\ []) do
+    uuid = generate_uuid(opts)
 
     case encoder.encode(uuid) do
       {:ok, shortuuid} when is_binary(shortuuid) ->
@@ -335,6 +341,21 @@ defmodule Ecto.ShortUUID.Builder do
       other ->
         raise "#{inspect(encoder)}.encode/1 failed to encode generated UUID " <>
                 "#{inspect(uuid)}, got: #{inspect(other)}"
+    end
+  end
+
+  defp generate_uuid([]), do: Ecto.UUID.generate()
+
+  # Ecto.UUID.generate/1 (and UUIDv7) exists since Ecto 3.14. It's checked at
+  # runtime, and called through apply/3, so older Ecto releases still compile
+  # this module without warnings.
+  defp generate_uuid(opts) when is_list(opts) do
+    if Code.ensure_loaded?(Ecto.UUID) and function_exported?(Ecto.UUID, :generate, 1) do
+      # credo:disable-for-next-line Credo.Check.Refactor.Apply
+      apply(Ecto.UUID, :generate, [opts])
+    else
+      raise ArgumentError,
+            "generating a UUID with options (#{inspect(opts)}) requires Ecto 3.14 or later"
     end
   end
 

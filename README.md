@@ -138,6 +138,20 @@ end
 ```
 This exactly the same as when using `:binary_id` as defined in the [Ecto docs - Schema attributes](https://hexdocs.pm/ecto/Ecto.Schema.html#module-schema-attributes).
 
+### UUIDv7
+
+With Ecto 3.14 or later, `autogenerate` options are passed to
+`Ecto.UUID.generate/1`, so primary keys can be time-ordered UUIDv7s:
+
+```elixir
+@primary_key {:id, Ecto.ShortUUID, autogenerate: [version: 7]}
+```
+
+`Ecto.ShortUUID.generate(version: 7)` does the same outside of schemas.
+ShortUUIDs sort in the same order as the UUIDs they encode, so these IDs stay
+time-ordered as strings too. With an older Ecto, options raise an
+`ArgumentError`.
+
 
 ### Migration
 
