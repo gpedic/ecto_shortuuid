@@ -13,9 +13,12 @@ elixir_blocks =
 
 Code.compile_string(example, "README.md")
 
-# The canonical marker snippet, added to a copy of the example. Its
-# `@impl true` needs a ShortUUID.Behaviour with the 4.3 callback, so it is
-# dropped here to stay warning-free on shortuuid 4.2.
+# The canonical marker snippet, added to a copy of the example. `@impl true`
+# on it would warn on shortuuid 4.2, so the README must not show it.
+if String.contains?(marker, "@impl") do
+  raise "the README's __shortuuid__/0 snippet must not use @impl"
+end
+
 marked_example =
   example
   |> String.replace("defmodule MyApp.UserID do", "defmodule MyApp.MarkedUserID do")
@@ -23,7 +26,7 @@ marked_example =
   |> String.replace("encoder: MyApp.UserID", "encoder: MyApp.MarkedUserID")
   |> String.replace(
     ~r/^end\n\n# The Ecto type/m,
-    String.replace(marker, "@impl true\n", "") <> "end\n\n# The Ecto type",
+    marker <> "end\n\n# The Ecto type",
     global: false
   )
 

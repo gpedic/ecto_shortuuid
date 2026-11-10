@@ -45,19 +45,22 @@ defmodule Ecto.ShortUUID.CanonicalMarkerTest do
     use LaxEncoder, true
   end
 
-  # Literal encoders, so the canonical flag is decided at compile time.
   defmodule Unmarked.Type, do: use(Ecto.ShortUUID.Builder, encoder: Unmarked)
   defmodule MarkedCanonical.Type, do: use(Ecto.ShortUUID.Builder, encoder: MarkedCanonical)
   defmodule MarkedNotCanonical.Type, do: use(Ecto.ShortUUID.Builder, encoder: MarkedNotCanonical)
   defmodule MarkedWithoutKey.Type, do: use(Ecto.ShortUUID.Builder, encoder: MarkedWithoutKey)
   defmodule MarkedNotAMap.Type, do: use(Ecto.ShortUUID.Builder, encoder: MarkedNotAMap)
 
-  # An encoder only known at runtime can't be inspected when the type is
-  # compiled, so it always gets the round trip, marker or not.
+  # The canonical flag is read from the evaluated encoder, however it is given.
   encoder = MarkedCanonical
 
-  defmodule RuntimeType do
+  defmodule VariableType do
     use Ecto.ShortUUID.Builder, encoder: encoder
+  end
+
+  defmodule AttributeType do
+    @lax_encoder Ecto.ShortUUID.CanonicalMarkerTest.MarkedCanonical
+    use Ecto.ShortUUID.Builder, encoder: @lax_encoder
   end
 
   @canonical "x" <> @test_uuid
@@ -65,13 +68,15 @@ defmodule Ecto.ShortUUID.CanonicalMarkerTest do
 
   describe "encoder marked canonical: true" do
     test "cast/1 trusts the decoder and doesn't re-encode" do
-      assert {:ok, @canonical} == MarkedCanonical.Type.cast(@canonical)
-      refute_received {:encode, _}
+      for type <- [MarkedCanonical.Type, VariableType, AttributeType] do
+        assert {:ok, @canonical} == type.cast(@canonical)
+        refute_received {:encode, _}
 
-      # The marker is a promise by the encoder. This one breaks it, which
-      # shows that cast/1 no longer checks.
-      assert {:ok, @non_canonical} == MarkedCanonical.Type.cast(@non_canonical)
-      refute_received {:encode, _}
+        # The marker is a promise by the encoder. This one breaks it, which
+        # shows that cast/1 no longer checks.
+        assert {:ok, @non_canonical} == type.cast(@non_canonical)
+        refute_received {:encode, _}
+      end
     end
 
     test "cast/1 still rejects what the decoder rejects" do
@@ -84,8 +89,7 @@ defmodule Ecto.ShortUUID.CanonicalMarkerTest do
         {Unmarked.Type, Unmarked},
         {MarkedNotCanonical.Type, MarkedNotCanonical},
         {MarkedWithoutKey.Type, MarkedWithoutKey},
-        {MarkedNotAMap.Type, MarkedNotAMap},
-        {RuntimeType, MarkedCanonical}
+        {MarkedNotAMap.Type, MarkedNotAMap}
       ] do
     describe "#{inspect(type)}" do
       test "cast/1 re-encodes and rejects non-canonical input" do
@@ -105,7 +109,8 @@ defmodule Ecto.ShortUUID.CanonicalMarkerTest do
           MarkedNotCanonical.Type,
           MarkedWithoutKey.Type,
           MarkedNotAMap.Type,
-          RuntimeType
+          VariableType,
+          AttributeType
         ] do
       assert Ecto.UUID.dump(@test_uuid) == type.dump(@canonical)
       assert Ecto.UUID.dump(@test_uuid) == type.dump(@non_canonical)

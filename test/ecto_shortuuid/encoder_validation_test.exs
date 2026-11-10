@@ -30,6 +30,86 @@ defmodule Ecto.ShortUUID.EncoderValidationTest do
     end
   end
 
+  test "encoder given as nil" do
+    assert_raise ArgumentError, ~r/must be a module, got: nil/, fn ->
+      compile("""
+      defmodule Ecto.ShortUUID.EncoderValidationTest.NilEncoder do
+        use Ecto.ShortUUID.Builder, encoder: nil
+      end
+      """)
+    end
+  end
+
+  test "unknown options" do
+    message = ~r/unknown options given to use Ecto.ShortUUID.Builder: \[:encodr\]/
+
+    assert_raise ArgumentError, message, fn ->
+      compile("""
+      defmodule Ecto.ShortUUID.EncoderValidationTest.UnknownOption do
+        use Ecto.ShortUUID.Builder, encoder: ShortUUID, encodr: ShortUUID
+      end
+      """)
+    end
+  end
+
+  test "options that are not a keyword list" do
+    assert_raise ArgumentError, ~r/expects a keyword list of options, got: ShortUUID/, fn ->
+      compile("""
+      defmodule Ecto.ShortUUID.EncoderValidationTest.NotAKeywordList do
+        use Ecto.ShortUUID.Builder, ShortUUID
+      end
+      """)
+    end
+  end
+
+  test "encoder given as a variable or attribute is validated too" do
+    assert_raise ArgumentError, ~r/DoesNotExist, could not be compiled or loaded/, fn ->
+      compile("""
+      encoder = DoesNotExist
+
+      defmodule Ecto.ShortUUID.EncoderValidationTest.UnknownVariableEncoder do
+        use Ecto.ShortUUID.Builder, encoder: encoder
+      end
+      """)
+    end
+
+    assert_raise ArgumentError, ~r/NoDecode, does not export decode\/1$/, fn ->
+      compile("""
+      defmodule Ecto.ShortUUID.EncoderValidationTest.AttributeMissingDecode do
+        @enc Ecto.ShortUUID.EncoderValidationTest.NoDecode
+        use Ecto.ShortUUID.Builder, encoder: @enc
+      end
+      """)
+    end
+
+    assert_raise ArgumentError, ~r/must be a module, got: "ShortUUID"/, fn ->
+      compile("""
+      encoder = "ShortUUID"
+
+      defmodule Ecto.ShortUUID.EncoderValidationTest.StringVariableEncoder do
+        use Ecto.ShortUUID.Builder, encoder: encoder
+      end
+      """)
+    end
+  end
+
+  test "the type module can define its own @encoder attribute" do
+    [{module, _}] =
+      compile("""
+      defmodule Ecto.ShortUUID.EncoderValidationTest.OwnEncoderAttribute do
+        use Ecto.ShortUUID.Builder, encoder: ShortUUID
+
+        @encoder DoesNotExist
+        def encoder, do: @encoder
+      end
+      """)
+
+    assert DoesNotExist == module.encoder()
+
+    assert {:ok, "9VprZJ9U7Tgg2PJ8BfTAek"} ==
+             module.cast("2a162ee5-02f4-4701-9e87-72762cbce5e2")
+  end
+
   test "encoder module that does not exist" do
     message =
       ~r/DoesNotExist, could not be compiled or loaded \(reason: .+\)\. If it is defined further down in the same file, move it above the type or into its own file$/

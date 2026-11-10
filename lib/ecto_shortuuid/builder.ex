@@ -14,15 +14,20 @@ defmodule Ecto.ShortUUID.Builder do
 
   The specified encoder must be a [ShortUUID](https://github.com/gpedic/ex_shortuuid)
   compatible module, ideally one implementing `ShortUUID.Behaviour` (as modules
-  built with `ShortUUID.Builder` do). Only `encode/1` and `decode/1` are used.
+  built with `ShortUUID.Builder` do). It must export `encode/1` and `decode/1`;
+  the optional `__shortuuid__/0` is only consulted for its `:canonical` flag
+  (see "Canonical encoding" below).
 
-  The encoder is checked when the type module is compiled: a missing `:encoder`
-  option, a module that can't be compiled or loaded, or one without `encode/1`
-  and `decode/1` raises an `ArgumentError` (unless the encoder is only known at
-  runtime, e.g. a variable in an unquote fragment). Because the encoder must be
-  compiled first, it can't be defined later in the same file as the type that
-  uses it; define it in its own file, above the type, or nested inside the type
-  module.
+  `:encoder` is the only option. The encoder may be given as a module name or
+  as anything that evaluates to one in the type module's body, such as a
+  variable, a module attribute or `Application.compile_env/3`. It is checked
+  when the type module is compiled: unknown options, a missing or non-module
+  `:encoder`, a module that can't be compiled or loaded, or one without
+  `encode/1` and `decode/1` raise an `ArgumentError`. The type module depends
+  on the encoder at compile time, so it is recompiled when the encoder changes.
+  Because the encoder must be compiled first, it can't be defined later in the
+  same file as the type that uses it; define it in its own file, above the
+  type, or nested inside the type module.
 
   ## Canonical encoding
 
@@ -52,27 +57,19 @@ defmodule Ecto.ShortUUID.Builder do
   """
 
   defmacro __using__(opts) do
-    encoder = opts |> Keyword.get(:encoder) |> Macro.expand(__CALLER__)
-    validate_encoder_option!(encoder)
+    encoder = opts |> validate_options!() |> Keyword.fetch!(:encoder)
 
-    # Whether a module encoder exists and exports encode/1 and decode/1 is
-    # checked once the type module's body has been evaluated, so an encoder
-    # nested in the type module before `use` is already defined.
-    # The encoder's canonical flag (see "Canonical encoding" above) is
-    # defined by the same hook. Encoders only known at runtime always get
-    # the encode round trip.
-    check_module =
-      if is_atom(encoder) do
-        quote do: @before_compile({unquote(__MODULE__), :__validate_encoder_module__})
-      else
-        quote do: defp(__canonical_encoder__, do: false)
-      end
-
+    # The encoder is stored in an attribute with a name users won't pick, and
+    # checked once the type module's body has been evaluated. So it can be
+    # given as a variable, module attribute or `Application.compile_env/3`
+    # call, and an encoder nested in the type module before `use` is already
+    # defined. The same hook defines the encoder's canonical flag (see
+    # "Canonical encoding" above).
     quote do
       @behaviour Ecto.Type
 
-      @encoder unquote(encoder)
-      unquote(check_module)
+      @ecto_shortuuid_encoder unquote(encoder)
+      @before_compile {unquote(__MODULE__), :__validate_encoder_module__}
 
       @typedoc """
       A ShortUUID string, as produced by the encoder.
@@ -103,7 +100,8 @@ defmodule Ecto.ShortUUID.Builder do
       """
       @impl true
       @spec cast(term()) :: {:ok, t()} | :error
-      def cast(value), do: unquote(__MODULE__).cast(@encoder, __canonical_encoder__(), value)
+      def cast(value),
+        do: unquote(__MODULE__).cast(@ecto_shortuuid_encoder, __canonical_encoder__(), value)
 
       @doc """
       Loads a binary UUID from the database and converts it to ShortUUID format.
@@ -116,7 +114,7 @@ defmodule Ecto.ShortUUID.Builder do
       """
       @impl true
       @spec load(term()) :: {:ok, t()} | :error
-      def load(value), do: unquote(__MODULE__).load(@encoder, value)
+      def load(value), do: unquote(__MODULE__).load(@ecto_shortuuid_encoder, value)
 
       @doc """
       Dumps a ShortUUID or standard UUID to binary format for database storage.
@@ -132,7 +130,7 @@ defmodule Ecto.ShortUUID.Builder do
       """
       @impl true
       @spec dump(term()) :: {:ok, <<_::128>>} | :error
-      def dump(value), do: unquote(__MODULE__).dump(@encoder, value)
+      def dump(value), do: unquote(__MODULE__).dump(@ecto_shortuuid_encoder, value)
 
       @doc """
       Dictates how the type should be treated inside embeds.
@@ -167,7 +165,7 @@ defmodule Ecto.ShortUUID.Builder do
       def equal?(term, term), do: true
 
       def equal?(term1, term2) when is_binary(term1) and is_binary(term2),
-        do: unquote(__MODULE__).equal?(@encoder, term1, term2)
+        do: unquote(__MODULE__).equal?(@ecto_shortuuid_encoder, term1, term2)
 
       def equal?(_term1, _term2), do: false
 
@@ -186,7 +184,7 @@ defmodule Ecto.ShortUUID.Builder do
       encode the generated UUID.
       """
       @spec generate(keyword()) :: t()
-      def generate(opts \\ []), do: unquote(__MODULE__).generate(@encoder, opts)
+      def generate(opts \\ []), do: unquote(__MODULE__).generate(@ecto_shortuuid_encoder, opts)
 
       @doc """
       Generates a ShortUUID string for use in primary keys, see `generate/1`.
@@ -201,27 +199,40 @@ defmodule Ecto.ShortUUID.Builder do
     end
   end
 
-  defp validate_encoder_option!(nil) do
-    raise ArgumentError,
-          "use Ecto.ShortUUID.Builder requires an :encoder option, " <>
-            "e.g. `use Ecto.ShortUUID.Builder, encoder: ShortUUID`"
-  end
-
-  defp validate_encoder_option!(encoder) when is_atom(encoder), do: :ok
-
-  defp validate_encoder_option!(encoder) do
-    # Anything other than a literal (e.g. a variable inside an unquote
-    # fragment) is only known at runtime and can't be checked here.
-    if Macro.quoted_literal?(encoder) do
+  defp validate_options!(opts) do
+    unless Keyword.keyword?(opts) do
       raise ArgumentError,
-            "the :encoder given to Ecto.ShortUUID.Builder must be a module, " <>
-              "got: #{Macro.to_string(encoder)}"
+            "use Ecto.ShortUUID.Builder expects a keyword list of options, " <>
+              "got: #{Macro.to_string(opts)}"
+    end
+
+    case Keyword.validate(opts, [:encoder]) do
+      {:ok, opts} ->
+        if Keyword.has_key?(opts, :encoder) do
+          opts
+        else
+          raise ArgumentError,
+                "use Ecto.ShortUUID.Builder requires an :encoder option, " <>
+                  "e.g. `use Ecto.ShortUUID.Builder, encoder: ShortUUID`"
+        end
+
+      {:error, unknown} ->
+        raise ArgumentError,
+              "unknown options given to use Ecto.ShortUUID.Builder: " <>
+                "#{inspect(unknown)}. The only option is :encoder"
     end
   end
 
   @doc false
   defmacro __validate_encoder_module__(env) do
-    encoder = Module.get_attribute(env.module, :encoder)
+    encoder = Module.get_attribute(env.module, :ecto_shortuuid_encoder)
+    Module.delete_attribute(env.module, :ecto_shortuuid_encoder)
+
+    if not is_atom(encoder) or encoder in [nil, true, false] do
+      raise ArgumentError,
+            "the :encoder given to Ecto.ShortUUID.Builder must be a module, " <>
+              "got: #{inspect(encoder)}"
+    end
 
     case Code.ensure_compiled(encoder) do
       {:module, ^encoder} ->
@@ -236,7 +247,10 @@ defmodule Ecto.ShortUUID.Builder do
                   "does not export #{Enum.join(missing, " and ")}"
         end
 
+        # `require` makes the encoder a compile-time dependency, so the type
+        # is checked again and its canonical flag recomputed when it changes.
         quote do
+          require unquote(encoder)
           defp __canonical_encoder__, do: unquote(canonical_encoder?(encoder))
         end
 
