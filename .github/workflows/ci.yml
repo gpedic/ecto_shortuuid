@@ -29,7 +29,7 @@ jobs:
             ecto: "== 3.10.0"
     env:
       MIX_ENV: test
-      ECTO_VERSION: ${{ matrix.ecto }}
+      ECTO_SHORTUUID_ECTO_VERSION: ${{ matrix.ecto }}
 
     steps:
     - uses: actions/checkout@v7

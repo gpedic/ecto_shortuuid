@@ -13,10 +13,10 @@ elixir_blocks =
 
 Code.compile_string(example, "README.md")
 
-# The canonical marker snippet, added to a copy of the example. `@impl true`
-# on it would warn on shortuuid 4.2, so the README must not show it.
-if String.contains?(marker, "@impl") do
-  raise "the README's __shortuuid__/0 snippet must not use @impl"
+# The canonical marker snippet, added to a copy of the example. The example
+# marks its callbacks with `@impl true`, so the snippet must too, or it warns.
+unless String.starts_with?(marker, "@impl true\n") do
+  raise "the README's __shortuuid__/0 snippet must start with @impl true"
 end
 
 marked_example =

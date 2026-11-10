@@ -195,6 +195,46 @@ defmodule Ecto.ShortUUID.EncoderValidationTest do
     end
   end
 
+  test "the type module as its own encoder" do
+    [{module, _}] =
+      compile("""
+      defmodule Ecto.ShortUUID.EncoderValidationTest.SelfEncoder do
+        use Ecto.ShortUUID.Builder, encoder: __MODULE__
+
+        def encode(uuid) do
+          send(self(), :self_encode)
+          ShortUUID.encode(uuid)
+        end
+
+        def decode(shortuuid), do: ShortUUID.decode(shortuuid)
+
+        # Can't be called while the type is compiled, so it is not trusted.
+        def __shortuuid__, do: %{canonical: true}
+      end
+      """)
+
+    assert {:ok, "9VprZJ9U7Tgg2PJ8BfTAek"} ==
+             module.cast("2a162ee5-02f4-4701-9e87-72762cbce5e2")
+
+    assert_received :self_encode
+    assert {:ok, "9VprZJ9U7Tgg2PJ8BfTAek"} == module.cast("9VprZJ9U7Tgg2PJ8BfTAek")
+    assert_received :self_encode
+    assert {:ok, <<42, 22, 46, 229, _::binary>>} = module.dump("9VprZJ9U7Tgg2PJ8BfTAek")
+  end
+
+  test "the type module as its own encoder, without decode/1" do
+    assert_raise ArgumentError, ~r/SelfMissingDecode, does not export decode\/1$/, fn ->
+      compile("""
+      defmodule Ecto.ShortUUID.EncoderValidationTest.SelfMissingDecode do
+        use Ecto.ShortUUID.Builder, encoder: __MODULE__
+        def encode(uuid), do: ShortUUID.encode(uuid)
+        defp decode(shortuuid), do: ShortUUID.decode(shortuuid)
+        def call_decode(s), do: decode(s)
+      end
+      """)
+    end
+  end
+
   test "encoder given through an alias" do
     [{module, _}] =
       compile("""
