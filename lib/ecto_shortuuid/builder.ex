@@ -27,7 +27,10 @@ defmodule Ecto.ShortUUID.Builder do
   on the encoder at compile time, so it is recompiled when the encoder changes.
   Because the encoder must be compiled first, it can't be defined later in the
   same file as the type that uses it; define it in its own file, above the
-  type, or nested inside the type module.
+  type, or nested inside the type module. The type module can also be its own
+  encoder (`encoder: __MODULE__`) by defining `encode/1` and `decode/1`
+  itself; such a type always gets the encode round trip in `cast/1`, as its
+  `__shortuuid__/0` can't be called before it is compiled.
 
   ## Canonical encoding
 
@@ -39,8 +42,8 @@ defmodule Ecto.ShortUUID.Builder do
   compiled:
 
     * `ShortUUID`, and encoders whose `__shortuuid__/0` (an optional
-      `ShortUUID.Behaviour` callback added in shortuuid 4.3, implemented by
-      `ShortUUID.Builder` modules) returns a map with `canonical: true`,
+      `ShortUUID.Behaviour` callback, implemented by `ShortUUID.Builder`
+      modules) returns a map with `canonical: true`,
       guarantee that `decode/1` only accepts canonical strings. `cast/1`
       just decodes.
     * For any other encoder, `cast/1` decodes the string, encodes the result
@@ -236,32 +239,48 @@ defmodule Ecto.ShortUUID.Builder do
               "got: #{inspect(encoder)}"
     end
 
-    case Code.ensure_compiled(encoder) do
-      {:module, ^encoder} ->
-        missing =
-          for {fun, arity} <- [encode: 1, decode: 1],
-              not function_exported?(encoder, fun, arity),
-              do: "#{fun}/#{arity}"
+    if encoder == env.module do
+      # The type module is its own encoder. It isn't compiled yet, so its
+      # functions are checked by definition, and its __shortuuid__/0 can't be
+      # called: such a type always gets the encode round trip.
+      check_exports!(encoder, &Module.defines?(encoder, &1, :def))
 
-        if missing != [] do
-          raise ArgumentError,
-                "the :encoder given to Ecto.ShortUUID.Builder, #{inspect(encoder)}, " <>
-                  "does not export #{Enum.join(missing, " and ")}"
-        end
+      quote do
+        defp __canonical_encoder__, do: false
+      end
+    else
+      ensure_compiled_encoder!(encoder)
+      check_exports!(encoder, fn {fun, arity} -> function_exported?(encoder, fun, arity) end)
 
-        # `require` makes the encoder a compile-time dependency, so the type
-        # is checked again and its canonical flag recomputed when it changes.
-        quote do
-          require unquote(encoder)
-          defp __canonical_encoder__, do: unquote(canonical_encoder?(encoder))
-        end
+      # `require` makes the encoder a compile-time dependency, so the type is
+      # checked again and its canonical flag recomputed when it changes.
+      quote do
+        require unquote(encoder)
+        defp __canonical_encoder__, do: unquote(canonical_encoder?(encoder))
+      end
+    end
+  end
 
-      {:error, reason} ->
-        raise ArgumentError,
-              "the :encoder given to Ecto.ShortUUID.Builder, #{inspect(encoder)}, " <>
-                "could not be compiled or loaded (reason: #{inspect(reason)}). " <>
-                "If it is defined further down in the same file, move it above " <>
-                "the type or into its own file"
+  defp ensure_compiled_encoder!(encoder) do
+    with {:error, reason} <- Code.ensure_compiled(encoder) do
+      raise ArgumentError,
+            "the :encoder given to Ecto.ShortUUID.Builder, #{inspect(encoder)}, " <>
+              "could not be compiled or loaded (reason: #{inspect(reason)}). " <>
+              "If it is defined further down in the same file, move it above " <>
+              "the type or into its own file"
+    end
+  end
+
+  defp check_exports!(encoder, exported?) do
+    missing =
+      for {fun, arity} <- [encode: 1, decode: 1],
+          not exported?.({fun, arity}),
+          do: "#{fun}/#{arity}"
+
+    if missing != [] do
+      raise ArgumentError,
+            "the :encoder given to Ecto.ShortUUID.Builder, #{inspect(encoder)}, " <>
+              "does not export #{Enum.join(missing, " and ")}"
     end
   end
 

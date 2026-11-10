@@ -2,7 +2,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/gpedic/ecto_shortuuid/badge.svg?branch=master)](https://coveralls.io/github/gpedic/ecto_shortuuid?branch=master)
 [![Hex.pm](https://img.shields.io/hexpm/v/ecto_shortuuid.svg)](https://hex.pm/packages/ecto_shortuuid)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/ecto_shortuuid/)
-[![License](https://img.shields.io/hexpm/l/ecto_shortuuid.svg)](https://github.com/gpedic/ecto_shortuuid/blob/master/LICENSE.md)
+[![License](https://img.shields.io/hexpm/l/ecto_shortuuid.svg)](https://github.com/gpedic/ecto_shortuuid/blob/master/LICENSE)
 [![Last Updated](https://img.shields.io/github/last-commit/gpedic/ecto_shortuuid.svg)](https://github.com/gpedic/ecto_shortuuid/commits/master)
 
 # Ecto.ShortUUID
@@ -65,8 +65,8 @@ application sees a different string:
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `ecto_shortuuid` to your list of dependencies in `mix.exs`:
+The package can be installed by adding `ecto_shortuuid` to your list of
+dependencies in `mix.exs`:
 
 ```elixir
 def deps do
@@ -82,15 +82,17 @@ end
 | ---------- | ------------------ |
 | Elixir     | `~> 1.15`          |
 | Ecto       | `~> 3.10`          |
-| shortuuid  | `~> 4.2`           |
+| shortuuid  | `~> 4.3`           |
 
-Ecto 2.x and shortuuid 2.x/3.x are no longer supported. shortuuid 4.2 is
+Ecto 2.x and shortuuid 2.x/3.x are no longer supported. shortuuid 4.3 is
 required: `ShortUUID.Builder` (custom alphabets) and `ShortUUID.Behaviour` are
-always available, and decoding never raises on malformed input (such as
-invalid UTF-8), so `cast/1` and `dump/1` return `:error` for it instead of
-crashing. shortuuid 3.x and 4.x produce
-identical encodings for the default alphabet, so upgrading from 3.x does not
-change any stored or exposed IDs.
+always available, decoding never raises on malformed input (such as invalid
+UTF-8), so `cast/1` and `dump/1` return `:error` for it instead of crashing,
+and `ShortUUID.Builder` encoders declare themselves canonical, so `cast/1`
+doesn't need to encode them again (see "Canonical encoding" in
+`Ecto.ShortUUID.Builder`). shortuuid 3.x and 4.x produce identical encodings
+for the default alphabet, so upgrading from 3.x does not change any stored or
+exposed IDs.
 
 ## Example project
 
@@ -191,7 +193,8 @@ defmodule MyApp.Repo.Migrations.CreateUser do
       add :age, :integer
       add :company_id, references(:companies, type: :uuid)
 
-      timestamps
+      timestamps()
+    end
   end
 end
 ```
@@ -318,12 +321,12 @@ encoder like this one it checks that by encoding the decoded UUID again and
 comparing the result, which rejects input a lax decoder would let through
 (say, a different letter case). `dump/1` only decodes. An encoder whose
 `decode/1` is strict can skip that extra `encode/1` call by declaring itself
-canonical with `__shortuuid__/0` (only the `:canonical` key is read). This
-works with any shortuuid version; from shortuuid 4.3 on, `__shortuuid__/0` is
-an optional `ShortUUID.Behaviour` callback, so you can also mark it
-`@impl true` there:
+canonical with the optional `ShortUUID.Behaviour` callback `__shortuuid__/0`
+(only the `:canonical` key is read). Modules built with `ShortUUID.Builder`
+already define it:
 
 ```elixir
+@impl true
 def __shortuuid__ do
   # alphabet, base and encoded_length describe the part after the prefix
   %{
@@ -343,8 +346,9 @@ module name, a variable or a module attribute: compilation fails with an
 `ArgumentError` on unknown options, if `:encoder` is missing or not a module,
 if the module can't be compiled or loaded, or if it doesn't export `encode/1`
 and `decode/1`. Define the encoder in its own file, above the Ecto type in the
-same file, or nested inside the Ecto type module. The Ecto type is recompiled
-whenever its encoder changes.
+same file, or nested inside the Ecto type module. The Ecto type can also be its
+own encoder (`encoder: __MODULE__`). The Ecto type is recompiled whenever its
+encoder changes.
 
 ## Development
 

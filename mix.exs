@@ -113,15 +113,17 @@ defmodule Ecto.ShortUUID.MixProject do
       {:stream_data, "~> 1.1", only: [:dev, :test]},
       {:sobelow, "~> 0.18", only: :dev, runtime: false},
       {:mix_audit, "~> 2.1", only: :dev, runtime: false},
-      {:shortuuid, "~> 4.2"},
+      {:shortuuid, "~> 4.3"},
       {:ecto, ecto_requirement()}
     ]
   end
 
-  # CI sets ECTO_VERSION (e.g. "== 3.10.0") to run the suite against the
-  # oldest supported Ecto release instead of the locked one.
+  # CI sets ECTO_SHORTUUID_ECTO_VERSION (e.g. "== 3.10.0") to run the suite
+  # against the oldest supported Ecto release instead of the locked one. The
+  # name is namespaced so a generic ECTO_VERSION in a consumer's environment
+  # (or the shell running `mix hex.publish`) can't change the requirement.
   defp ecto_requirement do
-    case System.get_env("ECTO_VERSION") do
+    case System.get_env("ECTO_SHORTUUID_ECTO_VERSION") do
       version when version in [nil, ""] -> "~> 3.10"
       version -> version
     end
