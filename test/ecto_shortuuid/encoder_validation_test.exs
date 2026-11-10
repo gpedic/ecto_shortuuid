@@ -8,6 +8,12 @@ defmodule Ecto.ShortUUID.EncoderValidationTest do
   defmodule NoEncodeNoDecode do
   end
 
+  defmodule RaisingInfo do
+    defdelegate encode(uuid), to: ShortUUID
+    defdelegate decode(shortuuid), to: ShortUUID
+    def __shortuuid__, do: raise("boom")
+  end
+
   defp compile(code), do: Code.compile_string(code, "encoder_validation_test")
 
   test "missing :encoder option" do
@@ -138,6 +144,18 @@ defmodule Ecto.ShortUUID.EncoderValidationTest do
       compile("""
       defmodule Ecto.ShortUUID.EncoderValidationTest.MissingBoth do
         use Ecto.ShortUUID.Builder, encoder: Ecto.ShortUUID.EncoderValidationTest.NoEncodeNoDecode
+      end
+      """)
+    end
+  end
+
+  test "encoder whose __shortuuid__/0 raises" do
+    message = ~r/RaisingInfo, raised in __shortuuid__\/0: boom$/
+
+    assert_raise ArgumentError, message, fn ->
+      compile("""
+      defmodule Ecto.ShortUUID.EncoderValidationTest.RaisingInfoType do
+        use Ecto.ShortUUID.Builder, encoder: Ecto.ShortUUID.EncoderValidationTest.RaisingInfo
       end
       """)
     end

@@ -43,9 +43,8 @@ defmodule Ecto.ShortUUID.Builder do
 
     * `ShortUUID`, and encoders whose `__shortuuid__/0` (an optional
       `ShortUUID.Behaviour` callback, implemented by `ShortUUID.Builder`
-      modules) returns a map with `canonical: true`,
-      guarantee that `decode/1` only accepts canonical strings. `cast/1`
-      just decodes.
+      modules) returns a map with `canonical: true`, guarantee that
+      `decode/1` only accepts canonical strings. `cast/1` just decodes.
     * For any other encoder, `cast/1` decodes the string, encodes the result
       again and rejects the input unless it gets the same string back. Input
       the decoder merely tolerates (e.g. a different letter case or extra
@@ -288,7 +287,22 @@ defmodule Ecto.ShortUUID.Builder do
 
   defp canonical_encoder?(encoder) do
     function_exported?(encoder, :__shortuuid__, 0) and
-      match?(%{canonical: true}, encoder.__shortuuid__())
+      match?(%{canonical: true}, encoder_info(encoder))
+  end
+
+  # __shortuuid__/0 is called while the type module is compiled, so name the
+  # encoder and the callback if it raises, instead of a bare error.
+  defp encoder_info(encoder) do
+    encoder.__shortuuid__()
+  rescue
+    error ->
+      reraise ArgumentError,
+              [
+                message:
+                  "the :encoder given to Ecto.ShortUUID.Builder, #{inspect(encoder)}, " <>
+                    "raised in __shortuuid__/0: " <> Exception.message(error)
+              ],
+              __STACKTRACE__
   end
 
   # The functions below implement the callbacks of the generated types. They
