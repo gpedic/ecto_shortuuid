@@ -155,8 +155,63 @@ defmodule Ecto.ShortUUIDTest do
     end
 
     test "generate version 4 UUIDs" do
-      {:ok, binary} = Ecto.ShortUUID.dump(Ecto.ShortUUID.generate())
-      assert <<_::48, 4::4, _::12, 2::2, _::62>> = binary
+      for shortuuid <- [Ecto.ShortUUID.generate(), Ecto.ShortUUID.generate([])] do
+        {:ok, binary} = Ecto.ShortUUID.dump(shortuuid)
+        assert <<_::48, 4::4, _::12, 2::2, _::62>> = binary
+      end
+    end
+  end
+
+  # Ecto.UUID.generate/1, and with it UUIDv7, exists since Ecto 3.14. CI also
+  # runs the suite against Ecto 3.10.0, where options must raise instead.
+  @uuid_options? Code.ensure_loaded?(Ecto.UUID) and function_exported?(Ecto.UUID, :generate, 1)
+
+  defmodule V7Schema do
+    use Ecto.Schema
+
+    @primary_key {:id, Ecto.ShortUUID, autogenerate: [version: 7]}
+    embedded_schema do
+    end
+  end
+
+  describe "generate/1 and autogenerate/1" do
+    if @uuid_options? do
+      test "generate UUIDv7-based ShortUUIDs" do
+        for fun <- [:generate, :autogenerate] do
+          shortuuid = apply(Ecto.ShortUUID, fun, [[version: 7]])
+          assert <<_::176>> = shortuuid
+          assert {:ok, ^shortuuid} = Ecto.ShortUUID.cast(shortuuid)
+          assert {:ok, <<_::48, 7::4, _::12, 2::2, _::62>>} = Ecto.ShortUUID.dump(shortuuid)
+        end
+      end
+
+      test "UUIDv7-based ShortUUIDs sort in generation order" do
+        ids = for _ <- 1..1000, do: Ecto.ShortUUID.generate(version: 7, precision: :monotonic)
+        assert ids == Enum.sort(ids)
+      end
+
+      test "Ecto calls autogenerate/1 with the schema's options" do
+        assert [{[:id], {Ecto.ShortUUID, :autogenerate, [[version: 7]]} = mfa}] =
+                 V7Schema.__schema__(:autogenerate)
+
+        {m, f, a} = mfa
+        shortuuid = apply(m, f, a)
+        assert {:ok, <<_::48, 7::4, _::bits>>} = Ecto.ShortUUID.dump(shortuuid)
+      end
+
+      test "invalid options raise Ecto's ArgumentError" do
+        assert_raise ArgumentError, ~r/unsupported UUID version/, fn ->
+          Ecto.ShortUUID.generate(version: 99)
+        end
+      end
+    else
+      test "options raise an ArgumentError on Ecto < 3.14" do
+        for fun <- [:generate, :autogenerate] do
+          assert_raise ArgumentError, ~r/requires Ecto 3.14 or later/, fn ->
+            apply(Ecto.ShortUUID, fun, [[version: 7]])
+          end
+        end
+      end
     end
   end
 
